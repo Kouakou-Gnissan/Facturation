@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de Bord - Facturation Pro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+    <link rel="stylesheet" href="style/dashboard.css">
+    <!-- Chart.js pour les graphiques -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+</head>
+
+<body>
+    <!-- Bouton menu mobile -->
+    <button class="mobile-menu-toggle" id="mobile-menu-toggle">
+        <i class="bi bi-list"></i>
+    </button>
+
+    <!-- Overlay mobile -->
+    <div class="mobile-overlay" id="mobile-overlay"></div>
+
+    <div class="main-content-container">
+        <div class="app-container">
+            <!-- Sidebar élégante -->
+            <div class="app-sidebar" id="app-sidebar">
+                <div class="sidebar-header">
+                    <h2>Facturation<span>Pro</span></h2>
+                </div>
+                <nav class="sidebar-nav">
+                    <ul>
+                        <li class="active">
+                            <a href="dashbord.html">
+                                <i class="bi bi-speedometer2"></i>
+                                <span>Tableau de bord</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="liste-facture.html">
+                                <i class="bi bi-receipt"></i>
+                                <span>Factures</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="nouvelle-facture.html">
+                                <i class="bi bi-plus-circle"></i>
+                                <span>Nouvelle facture</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="liste-devis.html">
+                                <i class="bi bi-file-text-fill"></i>
+                                <span>Devis</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="nouveau-devis.html">
+                                <i class="bi bi-plus-circle"></i>
+                                <span>Nouveau Devis</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="clients.html">
+                                <i class="bi bi-people-fill"></i>
+                                <span>Clients</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+                <div class="sidebar-footer">
+                    <div class="user-profile">
+                        <div class="avatar"></div>
+                        <div class="user-info">
+                            <span class="username"></span>
+                            <span class="role"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contenu principal -->
+            <main class="app-content">
+                <!-- En-tête avec salutation -->
+                <header class="dashboard-header">
+                    <div class="welcome-section">
+                        <h1 class="welcome-title">
+                            <i class="bi bi-sun"></i>
+                            <span id="greeting">Bonjour</span>, <span id="user-name">Utilisateur</span>
+                        </h1>
+                        <p class="welcome-subtitle">Voici un aperçu de votre activité aujourd'hui</p>
+                    </div>
+                    <div class="date-section">
+                        <div class="current-date">
+                            <i class="bi bi-calendar3"></i>
+                            <span id="current-date"></span>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- Indicateur de chargement -->
+                <div id="loading-indicator" class="loading-container" style="display: none;">
+                    <div class="loading-spinner">
+                        <div class="spinner"></div>
+                        <p>Chargement du tableau de bord...</p>
+                    </div>
+                </div>
+
+                <!-- Messages de statut -->
+                <div id="status-messages"></div>
+
+                <!-- Statistiques principales -->
+                <section class="main-stats">
+                    <div class="stats-grid">
+                        <!-- Chiffre d'affaires -->
+                        <div class="stat-card revenue-card">
+                            <div class="stat-header">
+                                <div class="stat-icon">
+                                    <i class="bi bi-currency-exchange"></i>
+                                </div>
+                                <div class="stat-trend" id="revenue-trend">
+                                    <i class="bi bi-arrow-up"></i>
+                                    <span>+12%</span>
+                                </div>
+                            </div>
+                            <div class="stat-content">
+                                <h3 id="total-revenue">0 FCFA</h3>
+                                <p>Chiffre d'Affaires</p>
+                                <small id="revenue-period">Ce mois</small>
+                            </div>
+                        </div>
+
+                        <!-- Factures -->
+                        <div class="stat-card invoices-card">
+                            <div class="stat-header">
+                                <div class="stat-icon">
+                                    <i class="bi bi-receipt"></i>
+                                </div>
+                                <div class="stat-trend" id="invoices-trend">
+                                    <i class="bi bi-arrow-up"></i>
+                                    <span>+8%</span>
+                                </div>
+                            </div>
+                            <div class="stat-content">
+                                <h3 id="total-invoices">0</h3>
+                                <p>Factures</p>
+                                <small id="invoices-breakdown">0 payées, 0 en attente</small>
+                            </div>
+                        </div>
+
+                        <!-- Devis -->
+                        <div class="stat-card quotes-card">
+                            <div class="stat-header">
+                                <div class="stat-icon">
+                                    <i class="bi bi-file-text"></i>
+                                </div>
+                                <div class="stat-trend" id="quotes-trend">
+                                    <i class="bi bi-arrow-up"></i>
+                                    <span>+5%</span>
+                                </div>
+                            </div>
+                            <div class="stat-content">
+                                <h3 id="total-quotes">0</h3>
+                                <p>Devis</p>
+                                <small id="quotes-breakdown">0 acceptés, 0 en attente</small>
+                            </div>
+                        </div>
+
+                        <!-- Clients -->
+                        <div class="stat-card clients-card">
+                            <div class="stat-header">
+                                <div class="stat-icon">
+                                    <i class="bi bi-people"></i>
+                                </div>
+                                <div class="stat-trend" id="clients-trend">
+                                    <i class="bi bi-arrow-up"></i>
+                                    <span>+3%</span>
+                                </div>
+                            </div>
+                            <div class="stat-content">
+                                <h3 id="total-clients">0</h3>
+                                <p>Clients</p>
+                                <small id="clients-breakdown">0 actifs, 0 nouveaux</small>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Graphiques et analyses -->
+                <section class="charts-section">
+                    <div class="charts-grid">
+                        <!-- Graphique des revenus -->
+                        <div class="chart-card">
+                            <div class="chart-header">
+                                <h4>Évolution du Chiffre d'Affaires</h4>
+                                <div class="chart-controls">
+                                    <select id="revenue-period-select" class="form-select form-select-sm">
+                                        <option value="7">7 derniers jours</option>
+                                        <option value="30" selected>30 derniers jours</option>
+                                        <option value="90">3 derniers mois</option>
+                                        <option value="365">12 derniers mois</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="revenueChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Graphique des statuts -->
+                        <div class="chart-card">
+                            <div class="chart-header">
+                                <h4>Répartition des Factures</h4>
+                                <div class="chart-legend" id="invoice-legend">
+                                    <!-- Légende générée dynamiquement -->
+                                </div>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="invoiceStatusChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Activités récentes et raccourcis -->
+                <section class="activity-section">
+                    <div class="activity-grid">
+                        <!-- Activités récentes -->
+                        <div class="activity-card">
+                            <div class="activity-header">
+                                <h4>
+                                    <i class="bi bi-clock-history"></i>
+                                    Activités Récentes
+                                </h4>
+                                <a href="#" class="view-all-link">Voir tout</a>
+                            </div>
+                            <div class="activity-list" id="recent-activities">
+                                <!-- Activités générées dynamiquement -->
+                            </div>
+                        </div>
+
+                        <!-- Raccourcis d'actions -->
+                        <div class="shortcuts-card">
+                            <div class="shortcuts-header">
+                                <h4>
+                                    <i class="bi bi-lightning"></i>
+                                    Actions Rapides
+                                </h4>
+                            </div>
+                            <div class="shortcuts-grid">
+                                <a href="nouvelle-facture.html" class="shortcut-item">
+                                    <div class="shortcut-icon">
+                                        <i class="bi bi-plus-circle"></i>
+                                    </div>
+                                    <span>Nouvelle Facture</span>
+                                </a>
+                                <a href="nouveau-devis.html" class="shortcut-item">
+                                    <div class="shortcut-icon">
+                                        <i class="bi bi-file-plus"></i>
+                                    </div>
+                                    <span>Nouveau Devis</span>
+                                </a>
+                                <button class="shortcut-item" onclick="dashboardManager.showAddClientModal()">
+                                    <div class="shortcut-icon">
+                                        <i class="bi bi-person-plus"></i>
+                                    </div>
+                                    <span>Ajouter Client</span>
+                                </button>
+                                <a href="liste-facture.html" class="shortcut-item">
+                                    <div class="shortcut-icon">
+                                        <i class="bi bi-receipt"></i>
+                                    </div>
+                                    <span>Voir Factures</span>
+                                </a>
+                                <a href="liste-devis.html" class="shortcut-item">
+                                    <div class="shortcut-icon">
+                                        <i class="bi bi-file-text"></i>
+                                    </div>
+                                    <span>Voir Devis</span>
+                                </a>
+                                <a href="clients.html" class="shortcut-item">
+                                    <div class="shortcut-icon">
+                                        <i class="bi bi-people"></i>
+                                    </div>
+                                    <span>Voir Clients</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Alertes et notifications -->
+                <section class="alerts-section">
+                    <div class="alerts-grid">
+                        <!-- Factures échues -->
+                        <div class="alert-card overdue-card">
+                            <div class="alert-header">
+                                <div class="alert-icon">
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                </div>
+                                <h5>Factures Échues</h5>
+                            </div>
+                            <div class="alert-content">
+                                <div class="alert-number" id="overdue-count">0</div>
+                                <div class="alert-amount" id="overdue-amount">0 FCFA</div>
+                                <a href="liste-facture.html?filter=echue" class="alert-action">Voir les factures</a>
+                            </div>
+                        </div>
+
+                        <!-- Devis en attente -->
+                        <div class="alert-card pending-card">
+                            <div class="alert-header">
+                                <div class="alert-icon">
+                                    <i class="bi bi-clock"></i>
+                                </div>
+                                <h5>Devis en Attente</h5>
+                            </div>
+                            <div class="alert-content">
+                                <div class="alert-number" id="pending-quotes-count">0</div>
+                                <div class="alert-amount" id="pending-quotes-amount">0 FCFA</div>
+                                <a href="liste-devis.html?filter=envoye" class="alert-action">Voir les devis</a>
+                            </div>
+                        </div>
+
+                        <!-- Objectifs du mois -->
+                        <div class="alert-card goals-card">
+                            <div class="alert-header">
+                                <div class="alert-icon">
+                                    <i class="bi bi-target"></i>
+                                </div>
+                                <h5>Objectif du Mois</h5>
+                            </div>
+                            <div class="alert-content">
+                                <div class="progress-container">
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" id="goal-progress" style="width: 0%"></div>
+                                    </div>
+                                    <div class="progress-text">
+                                        <span id="goal-percentage">0%</span>
+                                        <span id="goal-amount">0 / 0 FCFA</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Top clients -->
+                <section class="top-clients-section">
+                    <div class="top-clients-card">
+                        <div class="top-clients-header">
+                            <h4>
+                                <i class="bi bi-star"></i>
+                                Top Clients
+                            </h4>
+                            <a href="clients.html" class="view-all-link">Voir tous</a>
+                        </div>
+                        <div class="top-clients-list" id="top-clients-list">
+                            <!-- Top clients générés dynamiquement -->
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- Modal d'ajout rapide de client -->
+    <div class="modal fade" id="quickClientModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Ajouter un client rapidement</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="quickClientForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="quick-client-nom" class="form-label">Nom *</label>
+                                <input type="text" class="form-control" id="quick-client-nom" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="quick-client-prenom" class="form-label">Prénom</label>
+                                <input type="text" class="form-control" id="quick-client-prenom">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="quick-client-email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="quick-client-email">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="quick-client-telephone" class="form-label">Téléphone</label>
+                                <input type="tel" class="form-control" id="quick-client-telephone">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="quick-client-entreprise" class="form-label">Entreprise</label>
+                            <input type="text" class="form-control" id="quick-client-entreprise">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-primary" id="save-quick-client">Ajouter</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/dashboard.js"></script>
+
+    <script>
+        // Menu mobile toggle
+        document.getElementById('mobile-menu-toggle').addEventListener('click', function () {
+            const sidebar = document.getElementById('app-sidebar');
+            const overlay = document.getElementById('mobile-overlay');
+
+            sidebar.classList.toggle('mobile-open');
+            overlay.classList.toggle('active');
+        });
+
+        // Fermer le menu mobile en cliquant sur l'overlay
+        document.getElementById('mobile-overlay').addEventListener('click', function () {
+            const sidebar = document.getElementById('app-sidebar');
+            const overlay = document.getElementById('mobile-overlay');
+
+            sidebar.classList.remove('mobile-open');
+            overlay.classList.remove('active');
+        });
+
+        // Initialisation de la date
+        document.addEventListener('DOMContentLoaded', function () {
+            // Afficher la date actuelle
+            const currentDate = new Date();
+            const options = { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            };
+            document.getElementById('current-date').textContent = 
+                currentDate.toLocaleDateString('fr-FR', options);
+
+            // Salutation basée sur l'heure
+            const hour = currentDate.getHours();
+            let greeting = 'Bonjour';
+            if (hour < 12) {
+                greeting = 'Bonjour';
+            } else if (hour < 18) {
+                greeting = 'Bon après-midi';
+            } else {
+                greeting = 'Bonsoir';
+            }
+            document.getElementById('greeting').textContent = greeting;
+
+            // Gestion de l'authentification
+            window.firebaseAuth.onAuthStateChanged(user => {
+                if (user) {
+                    const usernameElement = document.querySelector('.user-info .username');
+                    const roleElement = document.querySelector('.user-info .role');
+                    const userNameElement = document.getElementById('user-name');
+
+                    const displayName = user.displayName || user.email.split('@')[0];
+
+                    if (usernameElement) {
+                        usernameElement.textContent = displayName;
+                    }
+
+                    if (roleElement) {
+                        roleElement.textContent = 'Connecté';
+                    }
+
+                    if (userNameElement) {
+                        userNameElement.textContent = displayName;
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
+

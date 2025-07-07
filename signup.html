@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inscription - Facturation PME</title>
+    <link rel="stylesheet" href="style/signup.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body>
+    <div class="container">
+        <div class="signup-wrapper">
+            <div class="signup-header">
+                <div class="logo">
+                    <i class="fas fa-receipt"></i>
+                    <h1>FacturePro</h1>
+                </div>
+                <h2>Créer votre compte</h2>
+                <p>Gérez vos devis et factures en toute simplicité</p>
+            </div>
+
+            <form id="signupForm" class="signup-form">
+                <div class="form-group">
+                    <label for="email">
+                        <i class="fas fa-envelope"></i>
+                        Adresse e-mail
+                    </label>
+                    <input type="email" id="email" name="email" required placeholder="votre@email.com">
+                    <span class="error-message" id="emailError"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">
+                        <i class="fas fa-lock"></i>
+                        Mot de passe
+                    </label>
+                    <div class="password-input">
+                        <input type="password" id="password" name="password" required placeholder="Votre mot de passe">
+                        <button type="button" class="toggle-password" id="togglePassword"
+                            onclick="togglePasswordVisibility()">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <div class="password-strength">
+                        <div class="strength-bar">
+                            <div class="strength-fill" id="strengthFill"></div>
+                        </div>
+                        <span class="strength-text" id="strengthText">Faible</span>
+                    </div>
+                    <span class="error-message" id="passwordError"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirmPassword">
+                        <i class="fas fa-lock"></i>
+                        Confirmer le mot de passe
+                    </label>
+                    <input type="password" id="confirmPassword" name="confirmPassword" required
+                        placeholder="Confirmez votre mot de passe">
+                    <span class="error-message" id="confirmPasswordError"></span>
+                </div>
+
+                <div class="form-group checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="terms" name="terms" required>
+                        <span class="checkmark"></span>
+                        J'accepte les <a href="#" class="link">conditions d'utilisation</a> et la <a href="#"
+                            class="link">politique de confidentialité</a>
+                    </label>
+                </div>
+
+                <button type="submit" class="signup-btn" id="signupBtn">
+                    <span class="btn-text">Créer mon compte</span>
+                    <div class="loading-spinner" id="loadingSpinner">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </div>
+                </button>
+
+            </form>
+
+            <div class="signup-footer">
+                <p>Vous avez déjà un compte ? <a href="login.html" class="link">Se connecter</a></p>
+            </div>
+
+            <div class="alert" id="alertMessage">
+                <div class="alert-content">
+                    <i class="alert-icon"></i>
+                    <span class="alert-text"></span>
+                </div>
+            </div>
+        </div>
+
+
+
+        <!-- Scripts Firebase -->
+        <script type="module">
+            import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+            import { getAuth } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+            // Configuration temporaire - à remplacer par votre configuration
+            const firebaseConfig = {
+                apiKey: "AIzaSyCwCkHtoEqwKalAXePnO6246UeUL1AKkOg",
+                authDomain: "appli-facturation.firebaseapp.com",
+                projectId: "appli-facturation",
+                storageBucket: "appli-facturation.firebasestorage.app",
+                messagingSenderId: "731190370993",
+                appId: "1:731190370993:web:db710c33dab92ef79ef890",
+                measurementId: "G-0VX3PF73RW"
+            };
+
+            const app = initializeApp(firebaseConfig);
+            window.auth = getAuth(app);
+        </script>
+        <script src="js/signup.js" type="module"></script>
+    </div>
+
+</body>
+
+</html>

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - Facturation PME</title>
+    <link rel="stylesheet" href="style/login.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body>
+    <div class="container">
+        <div class="login-wrapper">
+            <div class="login-header">
+                <div class="logo">
+                    <i class="fas fa-receipt"></i>
+                    <h1>FacturePro</h1>
+                </div>
+                <h2>Bon retour !</h2>
+                <p>Connectez-vous à votre espace de gestion</p>
+            </div>
+
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label for="email">
+                        <i class="fas fa-envelope"></i>
+                        Adresse e-mail
+                    </label>
+                    <input type="email" id="email" name="email" required placeholder="votre@email.com"
+                        autocomplete="email">
+                    <span class="error-message" id="emailError"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">
+                        <i class="fas fa-lock"></i>
+                        Mot de passe
+                    </label>
+                    <div class="password-input">
+                        <input type="password" id="password" name="password" required placeholder="Votre mot de passe"
+                            autocomplete="current-password">
+                        <button type="button" class="toggle-password" id="togglePassword">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <span class="error-message" id="passwordError"></span>
+                </div>
+
+                <div class="form-options">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="rememberMe" name="rememberMe">
+                        <span class="checkmark"></span>
+                        Se souvenir de moi
+                    </label>
+                    <a href="#" class="link forgot-password">Mot de passe oublié ?</a>
+                </div>
+
+                <button type="submit" class="login-btn" id="loginBtn">
+                    <span class="btn-text">Se connecter</span>
+                    <div class="loading-spinner" id="loadingSpinner">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </div>
+                </button>
+
+                <div class="divider">
+                    <span>ou</span>
+                </div>
+
+                <div class="social-login">
+                    <button type="button" class="social-btn google-btn">
+                        <i class="fab fa-google"></i>
+                        Continuer avec Google
+                    </button>
+                </div>
+            </form>
+
+            <div class="login-footer">
+                <p>Vous n'avez pas encore de compte ? <a href="signup.html" class="link">Créer un compte</a></p>
+            </div>
+
+            <div class="alert" id="alertMessage">
+                <div class="alert-content">
+                    <i class="alert-icon"></i>
+                    <span class="alert-text"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="welcome-section">
+            <div class="welcome-content">
+                <h3>Gérez votre activité en toute simplicité</h3>
+                <p>Accédez à tous vos outils de facturation et suivez vos performances en temps réel.</p>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number">500+</div>
+                        <div class="stat-label">PME utilisatrices</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">10k+</div>
+                        <div class="stat-label">Factures créées</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">99.9%</div>
+                        <div class="stat-label">Temps de disponibilité</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">24/7</div>
+                        <div class="stat-label">Support client</div>
+                    </div>
+                </div>
+
+                <div class="testimonial">
+                    <div class="testimonial-content">
+                        <i class="fas fa-quote-left"></i>
+                        <p>"FacturePro a révolutionné la gestion de ma petite entreprise. Simple, efficace et sécurisé
+                            !"</p>
+                        <div class="testimonial-author">
+                            <div class="author-avatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div class="author-info">
+                                <div class="author-name">Marie Dubois</div>
+                                <div class="author-title">Directrice, Dubois Consulting</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts Firebase -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+        // Configuration temporaire - à remplacer par votre configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCwCkHtoEqwKalAXePnO6246UeUL1AKkOg",
+            authDomain: "appli-facturation.firebaseapp.com",
+            projectId: "appli-facturation",
+            storageBucket: "appli-facturation.firebasestorage.app",
+            messagingSenderId: "731190370993",
+            appId: "1:731190370993:web:db710c33dab92ef79ef890",
+            measurementId: "G-0VX3PF73RW"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        window.auth = getAuth(app);
+    </script>
+    <script src="js/login.js" type="module"></script>
+</body>
+
+</html>

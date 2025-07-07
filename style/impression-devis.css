@@ -1,0 +1,577 @@
+/* CSS optimisé et responsive pour feuille d'impression de devis */
+
+* {
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+@page {
+    size: A4;
+    margin: 0;
+}
+
+:root {
+    /* Couleurs */
+    --danger: #f72585;
+    --shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    --transition: all 0.3s ease;
+    --border-color: #999;
+    --bg-gray: #ccc;
+    --bg-light-gray: #F2F2F2;
+    --text-color: #000;
+    --bg-white: white;
+
+    /* Dimensions A4 */
+    --a4-width: 210mm;
+    --a4-height: 297mm;
+    --a4-padding: 10mm;
+
+    /* Typographie */
+    --font-primary: 'Segoe UI', Tahoma, sans-serif;
+    --font-secondary: 'Agency FB', sans-serif;
+    --font-size-base: 1rem;
+    --font-size-small: 0.8rem;
+    --font-size-large: 1.2rem;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--border-color);
+    font-family: var(--font-primary);
+    color: var(--text-color);
+    line-height: 1.4;
+}
+
+/* Conteneur principal A4 */
+.devis-a4 {
+    width: var(--a4-width);
+    height: var(--a4-height);
+    margin: 0 auto;
+    padding: var(--a4-padding);
+    box-sizing: border-box;
+    font-family: var(--font-primary);
+    color: var(--text-color);
+    background: var(--bg-white);
+    page-break-after: always;
+    position: relative;
+    overflow: hidden;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+}
+
+/* Header du devis */
+.devis-header {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+    font-family: var(--font-secondary);
+    width: 100%;
+}
+
+.devis-header h4 {
+    color: var(--danger);
+    font-size: var(--font-size-base);
+    font-weight: 700;
+    margin: 0;
+    text-align: right;
+    white-space: nowrap;
+}
+
+/* Section informations du devis */
+.devis-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: stretch;
+    gap: 10px;
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+.devis-info .card-info {
+    background-color: var(--bg-gray);
+    font-family: var(--font-secondary);
+    flex: 1;
+    max-width: 48%;
+    padding: 15px;
+    min-height: 200px;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.devis-info .card-info h3 {
+    margin-bottom: 10px;
+    font-size: var(--font-size-large);
+    font-weight: bold;
+    color: var(--text-color);
+}
+
+.devis-info .card-info p {
+    font-size: var(--font-size-base);
+    margin: 1px 0;
+    line-height: 1.3;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.devis-info .card-info strong {
+    font-weight: bold;
+    display: inline-block;
+    min-width: 80px;
+}
+
+/* Section articles */
+.devis-articles {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.devis-articles table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--font-size-base);
+    font-family: var(--font-secondary);
+    table-layout: fixed;
+}
+
+.devis-articles colgroup col:nth-child(1) {
+    width: 60%;
+}
+
+.devis-articles colgroup col:nth-child(2) {
+    width: 8%;
+}
+
+.devis-articles colgroup col:nth-child(3) {
+    width: 15%;
+}
+
+.devis-articles colgroup col:nth-child(4) {
+    width: 17%;
+}
+
+.devis-articles th {
+    border: 1px solid var(--border-color);
+    padding: 1px;
+    text-align: center;
+    height: 20px;
+    min-height: 20px;
+    background-color: var(--bg-gray);
+    font-weight: bold;
+    font-size: var(--font-size-base);
+    word-wrap: break-word;
+    vertical-align: middle;
+}
+
+.devis-articles td {
+
+    border: 1px solid var(--border-color);
+    padding: 1px;
+    text-align: center;
+    height: 20px;
+    min-height: 20px;
+    font-weight: bold;
+    font-size: 0.9rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    vertical-align: middle;
+}
+
+.devis-articles td.article {
+    text-align: left;
+    padding-left: 6px;
+}
+
+.ligne-paire {
+    background-color: var(--bg-light-gray);
+}
+
+/* Section totaux */
+.devis-total {
+    margin-bottom: 5px;
+    width: 100%;
+    overflow-x: auto;
+}
+
+.devis-total table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--font-size-small);
+    font-family: var(--font-secondary);
+    table-layout: fixed;
+}
+
+.devis-total colgroup col:nth-child(1) {
+    width: 15%;
+}
+
+.devis-total colgroup col:nth-child(2) {
+    width: 15%;
+}
+
+.devis-total colgroup col:nth-child(3) {
+    width: 14.5%;
+}
+
+.devis-total colgroup col:nth-child(4) {
+    width: 14.3%;
+}
+
+.devis-total colgroup col:nth-child(5) {
+    width: 16.2%;
+}
+
+.devis-total colgroup col:nth-child(6) {
+    width: 25%;
+}
+
+.devis-total th {
+    border: 1px solid var(--border-color);
+    padding: 1px;
+    text-align: center;
+    height: 20px;
+    background-color: var(--bg-gray);
+    font-weight: bold;
+    font-size: var(--font-size-small);
+    word-wrap: break-word;
+    vertical-align: middle;
+}
+
+.devis-total td {
+    border: 1px solid var(--border-color);
+    padding: 1px;
+    text-align: center;
+    height: 20px;
+    font-weight: bold;
+    font-size: var(--font-size-small);
+    word-wrap: break-word;
+    min-height: 20px;
+    vertical-align: middle;
+}
+
+/* Footer du devis */
+.devis-footer {
+    margin-top: 0px;
+    width: 100%;
+}
+
+.devis-footer p {
+    font-family: var(--font-secondary);
+    font-size: var(--font-size-base);
+    margin-bottom: 10px;
+    word-wrap: break-word;
+}
+
+.footer-info {
+    margin-top: 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.footer-adresse {
+    flex: 1;
+    min-width: 250px;
+}
+
+.footer-adresse p {
+    font-size: var(--font-size-small);
+    margin: 2px 0;
+    line-height: 1.3;
+}
+
+.footer-signature {
+    text-align: center;
+    width: 200px;
+    flex-shrink: 0;
+}
+
+.footer-signature p {
+    font-size: var(--font-size-small);
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+.footer-signature img {
+    width: 100%;
+    max-width: 180px;
+    height: auto;
+    object-fit: contain;
+}
+
+/* Images générales */
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+.devis-footer>div:last-child {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.devis-footer>div:last-child img {
+    max-width: 100%;
+    height: auto;
+    margin: 0 auto;
+}
+
+
+@media print, screen {
+    .devis-articles td, 
+    .devis-articles th,
+    .devis-total td,
+    .devis-total th {
+        vertical-align: middle !important;
+        display: table-cell !important; /* Force le mode tableau */
+    }
+    
+    table {
+        border-collapse: collapse !important;
+    }
+}
+
+
+
+/* Tablettes et écrans moyens (768px - 1024px) */
+@media screen and (max-width: 1024px) {
+    .devis-a4 {
+        width: 95vw;
+        max-width: 800px;
+        height: auto;
+        min-height: 100vh;
+        padding: 15px;
+        margin: 10px auto;
+    }
+
+    .devis-header h4 {
+        font-size: 0.9rem;
+    }
+
+    .devis-info {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .devis-info .card-info {
+        max-width: 100%;
+        min-height: auto;
+    }
+
+    .footer-info {
+        gap: 15px;
+        margin-top: 20px;
+    }
+
+    .footer-signature {
+        width: 180px;
+    }
+}
+
+/* Smartphones et petits écrans (max 768px) */
+@media screen and (max-width: 768px) {
+    body {
+        padding: 5px;
+    }
+
+    .devis-a4 {
+        width: 100vw;
+        max-width: 100%;
+        height: auto;
+        min-height: 100vh;
+        padding: 10px;
+        margin: 0;
+        border-radius: 0;
+    }
+
+    .devis-header {
+        justify-content: center;
+        text-align: center;
+    }
+
+    .devis-header h4 {
+        font-size: 0.8rem;
+        margin: 0;
+        text-align: center;
+    }
+
+    .devis-info {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .devis-info .card-info {
+        max-width: 100%;
+        padding: 10px;
+        min-height: auto;
+    }
+
+    .devis-info .card-info p {
+        font-size: 0.9rem;
+    }
+
+    /* Tables responsive */
+    .devis-articles,
+    .devis-total {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .devis-articles table,
+    .devis-total table {
+        min-width: 500px;
+    }
+
+    .devis-articles th,
+    .devis-articles td {
+        padding: 4px 2px;
+        font-size: 0.8rem;
+    }
+
+    .devis-total th,
+    .devis-total td {
+        padding: 4px 1px;
+        font-size: 0.7rem;
+    }
+
+    .footer-info {
+        flex-direction: column;
+        gap: 15px;
+        margin-top: 15px;
+    }
+
+    .footer-adresse {
+        min-width: auto;
+    }
+
+    .footer-adresse p {
+        font-size: 0.7rem;
+    }
+
+    .footer-signature {
+        width: 150px;
+        margin: 0 auto;
+    }
+
+    .footer-signature img {
+        max-width: 120px;
+    }
+}
+
+/* Très petits écrans (max 480px) */
+@media screen and (max-width: 480px) {
+    .devis-a4 {
+        padding: 8px;
+    }
+
+    .devis-header h4 {
+        font-size: 0.7rem;
+        line-height: 1.2;
+    }
+
+    .devis-info .card-info {
+        padding: 8px;
+    }
+
+    .devis-info .card-info p {
+        font-size: 0.8rem;
+        margin: 2px 0;
+    }
+
+    .devis-info .card-info h3 {
+        font-size: 1rem;
+    }
+
+    .devis-articles table,
+    .devis-total table {
+        min-width: 450px;
+    }
+
+    .devis-articles th,
+    .devis-articles td {
+        font-size: 0.7rem;
+        padding: 2px 1px;
+
+    }
+
+    .devis-total th,
+    .devis-total td {
+        font-size: 0.6rem;
+        padding: 2px 1px;
+    }
+
+    .footer-adresse p {
+        font-size: 0.6rem;
+    }
+
+    .footer-signature {
+        width: 120px;
+    }
+
+    .footer-signature img {
+        max-width: 100px;
+    }
+
+    .devis-footer p {
+        font-size: 0.8rem;
+    }
+}
+
+
+
+/* Amélioration de l'accessibilité */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition: none !important;
+        animation: none !important;
+    }
+}
+
+/* Mode sombre (optionnel) */
+@media (prefers-color-scheme: dark) {
+    body {
+        background-color: #333;
+    }
+
+    .devis-a4 {
+        background: white;
+        color: black;
+    }
+}
+
+/* Optimisations pour les écrans haute résolution */
+@media (-webkit-min-device-pixel-ratio: 2),
+(min-resolution: 192dpi) {
+
+    .devis-articles th,
+    .devis-articles td,
+    .devis-total th,
+    .devis-total td {
+        border-width: 0.5px;
+    }
+}
+
+/* Styles pour les navigateurs anciens */
+.devis-info {
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-pack: justify;
+    -ms-flex-pack: justify;
+    justify-content: space-between;
+}
+
+.footer-info {
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-pack: justify;
+    -ms-flex-pack: justify;
+    justify-content: space-between;
+}
