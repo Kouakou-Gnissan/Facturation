@@ -50,6 +50,9 @@ function checkAuthState() {
             if (user) {
                 // Afficher un message si déjà connecté
                 showAlert('Vous êtes déjà connecté', 'info');
+                setTimeout(() => {
+                    window.location.href = 'dashbord.html'; // <-- attention à l'orthographe
+                }, 1000);
             }
         });
     }

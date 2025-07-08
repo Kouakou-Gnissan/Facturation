@@ -69,6 +69,12 @@
                                 <span>Clients</span>
                             </a>
                         </li>
+                        <li>
+                            <a href="#" onclick="logoutFirebase()">
+                                <i class="bi bi-box-arrow-right"></i>
+                                <span>Se déconnecter</span>
+                            </a>
+                        </li>
                     </ul>
                 </nav>
                 <div class="sidebar-footer">
@@ -375,6 +381,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/firebase-config.js"></script>
     <script src="js/clients.js"></script>
+    <script src="js/firebase-logout.js" type="module"></script>
 
     <script>
         // Menu mobile toggle
@@ -402,7 +409,7 @@
                     const usernameElement = document.querySelector('.user-info .username');
                     const roleElement = document.querySelector('.user-info .role');
                     const avatar = document.querySelector('.avatar');
-                    
+
                     if (usernameElement) {
                         usernameElement.textContent = user.email || 'Utilisateur';
                     }
@@ -417,4 +424,3 @@
 </body>
 
 </html>
-
