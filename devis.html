@@ -307,13 +307,56 @@
             totalRow.querySelector(".tva").textContent = data.tva + " %";
             totalRow.querySelector(".montant-ttc").textContent = data.montantTTC.toFixed(2);
 
-            document.title = `Devis_${data.numeroDevis || "000"}`;
+
+            // Montant en lettres (automatique si non fourni)
+            if (data.montantLettre && data.montantLettre.trim() !== "") {
+                document.getElementById("montant-lettre").textContent = data.montantLettre;
+            } else if (data.montantTTC) {
+                const montantLettre = numberToWordsFr(Math.round(data.montantTTC));
+                document.getElementById("montant-lettre").textContent = montantLettre;
+            }
+
+
+            document.title = `${data.numeroDevis || "000"}`;
             document.getElementById("numero-devis").textContent = data.numeroDevis || "";
 
 
             window.print();
             setTimeout(() => window.close(), 1000);
         };
+
+
+
+        function numberToWordsFr(n) {
+            const unités = ['zéro', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf'];
+            const dizaines = ['dix', 'onze', 'douze', 'treize', 'quatorze', 'quinze', 'seize', 'dix-sept', 'dix-huit', 'dix-neuf'];
+            const dizainesUnités = ['', '', 'vingt', 'trente', 'quarante', 'cinquante', 'soixante'];
+
+            function convert(n) {
+                if (n < 10) return unités[n];
+                if (n < 20) return dizaines[n - 10];
+                if (n < 70) {
+                    let d = Math.floor(n / 10), u = n % 10;
+                    return dizainesUnités[d] + (u === 1 ? '-et-un' : u > 0 ? '-' + unités[u] : '');
+                }
+                if (n < 80) return 'soixante-' + convert(n - 60);
+                if (n < 100) return 'quatre-vingt' + (n === 80 ? 's' : '-' + convert(n - 80));
+                if (n < 200) return 'cent' + (n > 100 ? ' ' + convert(n - 100) : '');
+                if (n < 1000) {
+                    let c = Math.floor(n / 100), r = n % 100;
+                    return unités[c] + ' cent' + (r > 0 ? ' ' + convert(r) : '');
+                }
+                if (n < 2000) return 'mille' + (n > 1000 ? ' ' + convert(n - 1000) : '');
+                if (n < 1000000) {
+                    let m = Math.floor(n / 1000), r = n % 1000;
+                    return convert(m) + ' mille' + (r > 0 ? ' ' + convert(r) : '');
+                }
+                if (n < 2000000) return 'un million' + (n > 1000000 ? ' ' + convert(n - 1000000) : '');
+                return convert(Math.floor(n / 1000000)) + ' millions' + (n % 1000000 > 0 ? ' ' + convert(n % 1000000) : '');
+            }
+
+            return convert(n) + ' francs CFA./.';
+        }
     </script>
 
 </body>
