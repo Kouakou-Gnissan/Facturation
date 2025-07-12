@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facture</title>
+    <link rel="stylesheet" href="style/facture.css">
+    <style>
+        @media print {
+            * {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            body {
+                background: white !important;
+            }
+        }
+
+        @page {
+            size: A4 portrait;
+            margin: 0;
+        }
+
+        /* Styles responsive pour mobile et tablette */
+        @media screen and (max-width: 768px) {
+            .facture-a4 {
+                width: 100% !important;
+                padding: 10px !important;
+                font-size: 10px !important;
+            }
+
+            .facture-header {
+                flex-direction: column !important;
+                text-align: center !important;
+            }
+
+            .facture-info {
+                flex-direction: column !important;
+            }
+
+            table {
+                font-size: 8px !important;
+            }
+
+            table th,
+            table td {
+                padding: 2px 2px !important;
+            }
+        }
+
+        @media screen and (max-width: 480px) {
+            .facture-a4 {
+                font-size: 9px !important;
+            }
+
+            table {
+                font-size: 7px !important;
+            }
+        }
+
+        /* Indicateur de chargement */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            font-size: 18px;
+            color: #007bff;
+        }
+
+        .loading-overlay.hidden {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="loading-overlay" id="loading">Préparation de l'impression...</div>
+
+    <div class="facture-a4" id="facture">
+        <header class="facture-header">
+            <img src="image/logo.png" alt="logo">
+            <h4 class="header-text">Solutions d'énergies sécondaires securisées</h4>
+        </header>
+
+        <section class="facture-info">
+            <div class="card-info">
+                <p class="date-facture"><strong>DATE : </strong><span id="date-facture"></span></p>
+                <p><strong>Client : </strong><span id="client-nom"></span></p>
+                <p><strong>Tel : </strong><span id="client-tel"></span></p>
+                <p><strong>BP : </strong><span id="client-bp"></span></p>
+                <p><strong>CC : </strong><span id="client-cc"></span></p>
+            </div>
+        </section>
+
+        <section class="facture-articles">
+            <table>
+                <colgroup>
+                    <col style="width: 60%;">
+                    <col style="width: 8%;">
+                    <col style="width: 12%;">
+                    <col style="width: 25%;">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th>QTE</th>
+                        <th>P.U.H.T</th>
+                        <th>TOTAL</th>
+                    </tr>
+                </thead>
+                <tbody id="facture-lignes-articles">
+                    <!-- Lignes injectées dynamiquement -->
+                    <tr>
+                        <td class="article ligne1">FOURNITURE D'APPAREILLAGES ELECTRIQUES</td>
+                        <td class="quantite"></td>
+                        <td class="prix"></td>
+                        <td class="total"></td>
+                    </tr>
+                    <tr>
+                        <td class="article ligne-paire"></td>
+                        <td class="quantite ligne-paire"></td>
+                        <td class="prix ligne-paire"></td>
+                        <td class="total ligne-paire"></td>
+                    </tr>
+                    <tr>
+                        <td class="article"></td>
+                        <td class="quantite"></td>
+                        <td class="prix"></td>
+                        <td class="total"></td>
+                    </tr>
+                    <tr>
+                        <td class="article ligne-paire"></td>
+                        <td class="quantite ligne-paire"></td>
+                        <td class="prix ligne-paire"></td>
+                        <td class="total ligne-paire"></td>
+                    </tr>
+                    <tr>
+                        <td class="article"></td>
+                        <td class="quantite"></td>
+                        <td class="prix"></td>
+                        <td class="total"></td>
+                    </tr>
+                    <tr>
+                        <td class="article ligne-paire"></td>
+                        <td class="quantite ligne-paire"></td>
+                        <td class="prix ligne-paire"></td>
+                        <td class="total ligne-paire"></td>
+                    </tr>
+                    <tr>
+                        <td class="article"></td>
+                        <td class="quantite"></td>
+                        <td class="prix"></td>
+                        <td class="total"></td>
+                    </tr>
+                    <tr>
+                        <td class="article ligne-paire"></td>
+                        <td class="quantite ligne-paire"></td>
+                        <td class="prix ligne-paire"></td>
+                        <td class="total ligne-paire"></td>
+                    </tr>
+                    <tr>
+                        <td class="article"></td>
+                        <td class="quantite"></td>
+                        <td class="prix"></td>
+                        <td class="total"></td>
+                    </tr>
+                    <tr>
+                        <td class="article ligne-paire"></td>
+                        <td class="quantite ligne-paire"></td>
+                        <td class="prix ligne-paire"></td>
+                        <td class="total ligne-paire"></td>
+                    </tr>
+                    <tr>
+                        <td class="article"></td>
+                        <td class="quantite"></td>
+                        <td class="prix"></td>
+                        <td class="total"></td>
+                    </tr>
+                    <tr>
+                        <td class="article ligne-paire"></td>
+                        <td class="quantite ligne-paire"></td>
+                        <td class="prix ligne-paire"></td>
+                        <td class="total ligne-paire"></td>
+                    </tr>
+                    <tr>
+                        <td class="article"></td>
+                        <td class="quantite"></td>
+                        <td class="prix"></td>
+                        <td class="total"></td>
+                    </tr>
+                    <tr>
+                        <td class="article ligne-paire"></td>
+                        <td class="quantite ligne-paire"></td>
+                        <td class="prix ligne-paire"></td>
+                        <td class="total ligne-paire"></td>
+                    </tr>
+                    <tr>
+                        <td class="article"></td>
+                        <td class="quantite"></td>
+                        <td class="prix"></td>
+                        <td class="total"></td>
+                    </tr>
+                    <tr>
+                        <td class="article ligne-paire"></td>
+                        <td class="quantite ligne-paire"></td>
+                        <td class="prix ligne-paire"></td>
+                        <td class="total ligne-paire"></td>
+                    </tr>
+                    <tr>
+                        <td class="article"></td>
+                        <td class="quantite"></td>
+                        <td class="prix"></td>
+                        <td class="total"></td>
+                    </tr>
+                    <tr>
+                        <td class="article ligne-paire"></td>
+                        <td class="quantite ligne-paire"></td>
+                        <td class="prix ligne-paire"></td>
+                        <td class="total ligne-paire"></td>
+                    </tr>
+                    <tr>
+                        <td class="article"></td>
+                        <td class="quantite"></td>
+                        <td class="prix"></td>
+                        <td class="total"></td>
+                    </tr>
+                    <tr>
+                        <td class="article ligne-paire"></td>
+                        <td class="quantite ligne-paire"></td>
+                        <td class="prix ligne-paire"></td>
+                        <td class="total ligne-paire"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="facture-total">
+            <table>
+                <colgroup>
+                    <col style="width: 17.5%;">
+                    <col style="width: 10%;">
+                    <col style="width: 17%;">
+                    <col style="width: 14.3%;">
+                    <col style="width: 16%;">
+                    <col style="width: 22%;">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>MONTANT TH</th>
+                        <th>REMISE %</th>
+                        <th>APRES REMISE</th>
+                        <th>MAIN D'OEUVRE</th>
+                        <th>TVA NON FACTUREE</th>
+                        <th>MONTANT TOTAL HT A PAYER</th>
+                    </tr>
+                </thead>
+                <tbody id="facture-lignes-totaux">
+                    <!-- Lignes injectées dynamiquement -->
+                    <tr>
+                        <td class="Montant-th"></td>
+                        <td class="remise"></td>
+                        <td class="apres-remise"></td>
+                        <td class="main-oeuvre"></td>
+                        <td class="tva"></td>
+                        <td class="montant-ttc"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- footer de la facture -->
+        <section class="facture-footer">
+            <p><strong>ARRETER LA PRESENTE FACTURE A LA SOMME DE :</strong><span id="montant-lettre"></span></p>
+            <div class="footer-info">
+                <div class="footer-signature">
+                    <p><strong>LA DIRECTION COMMERCIALE</strong></p>
+                </div>
+            </div>
+
+        </section>
+    </div>
+
+    <script>
+        // Configuration
+        const CONFIG = {
+            PRINT_DELAY: 500,
+            CLOSE_DELAY: 1000,
+            AUTO_PRINT: true
+        };
+
+        // Fonction pour formater les nombres
+        function formatNumber(number) {
+            if (number === null || number === undefined || isNaN(number)) {
+                return '';
+            }
+            return parseFloat(number);
+        }
+
+        // Fonction principale d'initialisation
+        function initializefacture() {
+            try {
+                // Récupération des données depuis localStorage
+                const data = JSON.parse(localStorage.getItem("factureData"));
+
+                if (!data) {
+                    alert("Aucune donnée trouvée pour l'impression.");
+                    window.close();
+                    return;
+                }
+
+                // Remplir les données exactement comme dans le code original
+                populateFactureData(data);
+
+                // Masquer l'indicateur de chargement
+                document.getElementById('loading').classList.add('hidden');
+
+                // Lancer l'impression automatique après un court délai
+                if (CONFIG.AUTO_PRINT) {
+                    setTimeout(() => {
+                        window.print();
+
+                        // Fermer la fenêtre après l'impression
+                        setTimeout(() => {
+                            try {
+                                window.close();
+                            } catch (e) {
+                                // Si la fermeture échoue, essayer d'autres méthodes
+                                if (window.history.length > 1) {
+                                    window.history.back();
+                                } else {
+                                    // En dernier recours, masquer le contenu
+                                    document.body.innerHTML = '<div style="text-align:center;padding:50px;font-size:18px;">Impression terminée. Vous pouvez fermer cette fenêtre.</div>';
+                                }
+                            }
+                        }, CONFIG.CLOSE_DELAY);
+                    }, CONFIG.PRINT_DELAY);
+                }
+
+            } catch (error) {
+                console.error('Erreur lors de l\'initialisation:', error);
+                alert('Erreur lors de l\'initialisation de la page d\'impression.');
+                window.close();
+            }
+        }
+
+        // Fonction pour remplir les données (identique au code original)
+        function populateFactureData(data) {
+            // Infos générales
+
+            if (data.dateFacture) {
+                const date = new Date(data.dateFacture);
+                const options = { day: 'numeric', month: 'long', year: 'numeric' };
+                const dateFr = date.toLocaleDateString('fr-FR', options);
+                document.getElementById("date-facture").textContent = dateFr;
+            }
+
+            // Infos client
+            document.getElementById("client-nom").textContent = data.clientName || "";
+            document.getElementById("client-tel").textContent = data.telephone || "";
+            document.getElementById("client-bp").textContent = data.bp || "";
+            document.getElementById("client-cc").textContent = data.cc || "";
+
+            // Insertion des articles (à partir de la 2e ligne du tableau)
+            const lignes = document.querySelectorAll("#facture-lignes-articles tr");
+            for (let i = 1; i < lignes.length && i - 1 < (data.articles || []).length; i++) {
+                const articleData = data.articles[i - 1];
+                if (articleData) {
+                    lignes[i].querySelector(".article").textContent = articleData.description || "";
+                    lignes[i].querySelector(".quantite").textContent = articleData.quantity || "";
+                    lignes[i].querySelector(".prix").textContent = articleData.price ? formatNumber(articleData.price) : "";
+                    lignes[i].querySelector(".total").textContent = articleData.total ? formatNumber(articleData.total) : "";
+                }
+            }
+
+            // Totaux
+            const totalRow = document.querySelector("#facture-lignes-totaux tr");
+            if (totalRow) {
+                totalRow.querySelector(".Montant-th").textContent = data.montantHT ? formatNumber(data.montantHT) : "";
+                totalRow.querySelector(".remise").textContent = (data.remise || 0) + " %";
+                totalRow.querySelector(".apres-remise").textContent = data.apresRemise ? formatNumber(data.apresRemise) : "";
+                totalRow.querySelector(".main-oeuvre").textContent = data.mainOeuvre ? formatNumber(data.mainOeuvre) : "";
+                totalRow.querySelector(".tva").textContent = (data.tva || 0) + " %";
+                totalRow.querySelector(".montant-ttc").textContent = data.montantTTC ? formatNumber(data.montantTTC) + ' CFA' : "";
+            }
+
+            // Montant en lettres (automatique si non fourni)
+            if (data.montantLettre && data.montantLettre.trim() !== "") {
+                document.getElementById("montant-lettre").textContent = data.montantLettre;
+            } else if (data.montantTTC) {
+                const montantLettre = numberToWordsFr(Math.round(data.montantTTC));
+                document.getElementById("montant-lettre").textContent = montantLettre;
+            }
+
+
+            // Titre de la page
+            document.title = `Facture_${data.numeroFacture || "000"}`;
+        }
+
+        // Événements
+        window.addEventListener('load', initializefacture);
+
+        // Gestion de l'événement après impression (si l'utilisateur annule)
+        window.addEventListener('afterprint', () => {
+            setTimeout(() => {
+                try {
+                    window.close();
+                } catch (e) {
+                    if (window.history.length > 1) {
+                        window.history.back();
+                    }
+                }
+            }, 500);
+        });
+
+        // Gestion des erreurs globales
+        window.addEventListener('error', (event) => {
+            console.error('Erreur:', event.error);
+        });
+
+        // Empêcher certaines actions non nécessaires
+        document.addEventListener('contextmenu', (e) => e.preventDefault());
+        document.addEventListener('keydown', (e) => {
+            // Autoriser seulement Ctrl+P pour l'impression
+            if (e.ctrlKey && e.key === 'p') {
+                return true;
+            }
+            // Bloquer F12, Ctrl+Shift+I, etc.
+            if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
+                e.preventDefault();
+            }
+        });
+
+
+        function numberToWordsFr(n) {
+            const unités = ['zéro', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf'];
+            const dizaines = ['dix', 'onze', 'douze', 'treize', 'quatorze', 'quinze', 'seize', 'dix-sept', 'dix-huit', 'dix-neuf'];
+            const dizainesUnités = ['', '', 'vingt', 'trente', 'quarante', 'cinquante', 'soixante'];
+
+            function convert(n) {
+                if (n < 10) return unités[n];
+                if (n < 20) return dizaines[n - 10];
+                if (n < 70) {
+                    let d = Math.floor(n / 10), u = n % 10;
+                    return dizainesUnités[d] + (u === 1 ? '-et-un' : u > 0 ? '-' + unités[u] : '');
+                }
+                if (n < 80) return 'soixante-' + convert(n - 60);
+                if (n < 100) return 'quatre-vingt' + (n === 80 ? 's' : '-' + convert(n - 80));
+                if (n < 200) return 'cent' + (n > 100 ? ' ' + convert(n - 100) : '');
+                if (n < 1000) {
+                    let c = Math.floor(n / 100), r = n % 100;
+                    return unités[c] + ' cent' + (r > 0 ? ' ' + convert(r) : '');
+                }
+                if (n < 2000) return 'mille' + (n > 1000 ? ' ' + convert(n - 1000) : '');
+                if (n < 1000000) {
+                    let m = Math.floor(n / 1000), r = n % 1000;
+                    return convert(m) + ' mille' + (r > 0 ? ' ' + convert(r) : '');
+                }
+                if (n < 2000000) return 'un million' + (n > 1000000 ? ' ' + convert(n - 1000000) : '');
+                return convert(Math.floor(n / 1000000)) + ' millions' + (n % 1000000 > 0 ? ' ' + convert(n % 1000000) : '');
+            }
+
+            return convert(n) + ' francs CFA./.';
+        }
+
+    </script>
+</body>
+
+</html>

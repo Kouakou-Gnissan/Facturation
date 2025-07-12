@@ -93,7 +93,10 @@
                 <header class="content-header">
                     <h1><i class="bi bi-file-plus"></i> Nouveau Devis</h1>
                     <div class="header-action">
-                        <button onclick="ImprimerDevis()" class="btn-primary" id="btn-imprimer">
+                        <button class="btn-primary" id="btn-nouveau">
+                            <i class="bi bi-file-earmark-plus"></i> Nouveau
+                        </button>
+                        <button class="btn-primary" id="btn-imprimer">
                             <i class="bi bi-printer"></i> Imprimer
                         </button>
                         <button class="btn-primary" id="btn-enregistrer">
@@ -325,7 +328,16 @@
             document.getElementById('date-devis').value = today;
 
             // Générer un numéro de devis automatique
-            const numeroDevis = 'DEV-' + Date.now().toString().slice(-6);
+            const aujourdHui = new Date();
+            const annee = aujourdHui.getFullYear();
+            const mois = String(aujourdHui.getMonth() + 1).padStart(2, '0');
+            const jour = String(aujourdHui.getDate()).padStart(2, '0');
+
+            const dateFormat = `${annee}${mois}${jour}`;
+            const codeEntreprise = 'L2EP-AFRIC';
+            const randomNum = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+
+            const numeroDevis = `${dateFormat}/${codeEntreprise}/${randomNum}`;
             document.getElementById('numero-devis').value = numeroDevis;
         });
 

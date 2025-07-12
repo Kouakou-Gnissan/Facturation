@@ -93,7 +93,10 @@
                 <header class="content-header">
                     <h1><i class="bi bi-receipt-cutoff"></i> Nouvelle Facture</h1>
                     <div class="header-action">
-                        <button onclick="ImprimerFacture()" class="btn-primary" id="btn-imprimer">
+                        <button class="btn-primary" id="btn-nouvelle">
+                            <i class="bi bi-file-earmark-plus"></i> Nouvelle
+                        </button>
+                        <button class="btn-primary" id="btn-imprimer">
                             <i class="bi bi-printer"></i> Imprimer
                         </button>
                         <button class="btn-primary" id="btn-enregistrer">
@@ -344,7 +347,7 @@
             document.getElementById('date-echeance').value = echeanceDate.toISOString().split('T')[0];
 
             // Générer un numéro de facture automatique
-            const numeroFacture = 'FAC-' + Date.now().toString().slice(-6);
+            const numeroFacture = 'FAC-L2EP-AFRIC-' + Date.now().toString().slice(-6);
             document.getElementById('numero-facture').value = numeroFacture;
         });
 

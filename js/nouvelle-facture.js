@@ -29,6 +29,11 @@ class FactureManager {
             this.ImprimerFacture();
         });
 
+        // Bouton nouvelle facture 
+        document.getElementById('btn-nouvelle').addEventListener('click', () => {
+            this.nouvelleFacture();
+        });
+
         // Calcul automatique des totaux
         document.addEventListener('input', (e) => {
             if (e.target.matches('.quantity-input, .price-input, #remise, #main-oeuvre, #tva')) {
@@ -52,6 +57,10 @@ class FactureManager {
         table.style.width = '100%';
 
         const tbody = document.querySelector('#items-table tbody');
+        if (tbody.children.length > 18) {
+            showStatusMessage('Trop d\'article pour cette facture. Veuillez en faire une nouvelle', 'warning');
+            return;
+        }
         const row = document.createElement('tr');
         row.dataset.itemId = this.itemsCount++;
 
@@ -494,7 +503,7 @@ class FactureManager {
                     input.value = echeanceDate.toISOString().split('T')[0];
                 }
             } else if (input.id === 'numero-facture') {
-                input.value = 'FAC-' + Date.now().toString().slice(-6);
+                input.value = 'FAC-L2EP-AFRIC-' + Date.now().toString().slice(-6);
             } else {
                 input.value = '';
             }

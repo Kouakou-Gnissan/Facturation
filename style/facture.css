@@ -1,0 +1,210 @@
+* {
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    /* Couleurs */
+    --danger: #f72585;
+    --shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    --transition: all 0.3s ease;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #999;
+    height: auto;
+    overflow: hidden;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+
+.facture-a4 {
+    width: 210mm;
+    height: 297mm;
+    margin: 0 auto;
+    padding: 4mm 10mm;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    color: #000;
+    background: white;
+    page-break-after: avoid;
+    page-break-inside: avoid;
+}
+
+.facture-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 10px;
+    font-family: 'Agency FB', sans-serif;
+
+}
+
+
+.facture-header img {
+    width: 100%;
+    height: auto;
+    max-width: 280px;
+    visibility: hidden;
+}
+
+
+.facture-header h4 {
+    color: var(--danger);
+    font-size: 14px;
+    font-weight: 700;
+    margin: 0;
+    margin-top: 50px;
+    text-align: right;
+    white-space: nowrap;
+    visibility: hidden;
+}
+
+.facture-info {
+    width: 100%;
+    margin-bottom: 15px;
+}
+
+.facture-info .card-info {
+    background-color: #ccc;
+    font-family: 'Agency FB', sans-serif;
+    max-width: 30%;
+    margin-left: 50%;
+    flex: 1;
+    width: 100%;
+    padding: 10px;
+
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.facture-info .card-info p {
+    font-size: 1rem;
+    flex-direction: column;
+    justify-content: space-between;
+    margin: 4px 0;
+    font-size: 16px;
+}
+
+.facture-info .card-info .date-facture {
+    font-size: 18px;
+    margin-bottom: 6px;
+}
+
+
+.facture-articles table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 1rem;
+    font-family: 'Agency FB', sans-serif;
+}
+
+.facture-articles th {
+    border: 1px solid #999;
+    padding: 1px;
+    text-align: center;
+    height: 20px;
+    background-color: #ccc;
+}
+
+
+.facture-articles td {
+    border: 1px solid #999;
+    padding: 1px;
+    height: 19px;
+    font-weight: 500;
+}
+
+.facture-articles .article {
+     padding-left: 6px;
+}
+
+.quantite {
+    text-align: center;
+}
+
+.facture-articles .prix {
+    text-align: right;
+    padding-right: 6px;
+
+}
+
+.facture-articles .total {
+    text-align: right;
+    padding-right: 5px;
+}
+
+.ligne1 {
+    text-align: center;
+}
+
+.ligne-paire {
+    background-color: #F2F2F2;
+}
+
+/* section total */
+
+.facture-total table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 1rem;
+    font-family: 'Agency FB', sans-serif;
+}
+
+.facture-total th {
+    border: 1px solid #999;
+    padding: 1px;
+    text-align: center;
+    height: 20px;
+    background-color: #ccc;
+}
+
+.facture-total td {
+    font-size: 1rem;
+    border: 1px solid #999;
+    padding: 1px;
+    text-align: center;
+    height: 20px;
+    font-weight: 500;
+    display: table-cell;
+}
+
+/* Bas du devis */
+
+.facture-footer {
+    margin-top: 1px;
+}
+
+.facture-footer p {
+    font-family: 'Agency FB', sans-serif;
+    font-size: 16px;
+}
+
+.footer-info {
+    margin-top: 35px;
+    flex-wrap: wrap;
+    display: flex;
+    justify-content: space-between;
+    gap: 150px;
+    margin-bottom: 25px;
+}
+
+.footer-adresse {
+    margin-top: 70px;
+}
+
+.footer-signature {
+    width: 100%;
+}
+
+.footer-signature p {
+    margin-left: 70%;
+}

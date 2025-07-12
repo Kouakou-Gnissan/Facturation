@@ -29,6 +29,11 @@ class DevisManager {
             this.ImprimerDevis();
         });
 
+        // bouton nouveau devis 
+        document.getElementById('btn-nouveau').addEventListener('click', () => {
+            this.nouveauDevis();
+        });
+
         // Calcul automatique des totaux
         document.addEventListener('input', (e) => {
             if (e.target.matches('.quantity-input, .price-input, #remise, #main-oeuvre, #tva')) {
@@ -52,6 +57,11 @@ class DevisManager {
         table.style.width = '100%';
 
         const tbody = document.querySelector('#items-table tbody');
+        if (tbody.children.length > 18) {
+            showStatusMessage('Trop d\'article pour ce devis. Veuillez en faire un nouveau', 'warning');
+            return;
+        }
+
         const row = document.createElement('tr');
         row.dataset.itemId = this.itemsCount++;
 
@@ -496,7 +506,15 @@ class DevisManager {
             } else if (input.type === 'date') {
                 input.value = new Date().toISOString().split('T')[0];
             } else if (input.id === 'numero-devis') {
-                input.value = 'DEV-' + Date.now().toString().slice(-6);
+                const aujourdHui = new Date();
+                const annee = aujourdHui.getFullYear();
+                const mois = String(aujourdHui.getMonth() + 1).padStart(2, '0');
+                const jour = String(aujourdHui.getDate()).padStart(2, '0');
+                const dateFormat = `${annee}${mois}${jour}`;
+                const codeEntreprise = 'L2EP-AFRIC';
+                const randomNum = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+
+                input.value = `${dateFormat}/${codeEntreprise}/${randomNum}`;
             } else if (input.id === 'validite') {
                 input.value = '30 jours';
             } else {
