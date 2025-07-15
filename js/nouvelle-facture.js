@@ -493,7 +493,7 @@ class FactureManager {
         // Réinitialiser le formulaire
         document.querySelectorAll('input').forEach(input => {
             if (input.type === 'number') {
-                input.value = input.id === 'tva' ? '18' : '0';
+                input.value = input.id === 'tva' ? '0' : '0';
             } else if (input.type === 'date') {
                 if (input.id === 'date-facture') {
                     input.value = new Date().toISOString().split('T')[0];

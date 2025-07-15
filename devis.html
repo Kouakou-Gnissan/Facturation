@@ -68,7 +68,7 @@
                 </colgroup>
                 <thead>
                     <tr>
-                        <th>Description</th>
+                        <th>DESIGNATION</th>
                         <th>QTE</th>
                         <th>P.U.H.T</th>
                         <th>TOTAL</th>
@@ -77,7 +77,7 @@
                 <tbody id="devis-lignes-articles">
                     <!-- Lignes injectées dynamiquement -->
                     <tr>
-                        <td class="article linge1">FOURNITURE D'APPAREILLAGES ELECTRIQUES</td>
+                        <td class="article ligne1">FOURNITURE D'APPAREILLAGES ELECTRIQUES</td>
                         <td class="quantite"></td>
                         <td class="prix"></td>
                         <td class="total"></td>
@@ -214,7 +214,7 @@
                 <thead>
                     <tr>
                         <th>MONTANT TH</th>
-                        <th>REMISE %</th>
+                        <th class="remise-entete">REMISE</th>
                         <th>APRES REMISE</th>
                         <th>MAIN D'OEUVRE</th>
                         <th>TVA NON FACTUREE</th>
@@ -258,57 +258,83 @@
         </section>
     </div>
     <script>
-
-
         window.onload = () => {
-
             const data = JSON.parse(localStorage.getItem("devisData"));
             if (!data) {
                 alert("Aucune donnée trouvée pour l'impression.");
                 return;
             }
 
-            // Infos générales
-            document.getElementById("numero-devis").textContent = data.numeroDevis;
-            document.getElementById("date-devis").textContent = data.dateDevis;
+            // Fonction de formatage avec séparateur de milliers
+            const formatNumber = (n) => {
+                return parseFloat(n).toLocaleString('fr-FR', {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                    useGrouping: true
+                });
+            };
 
-            // Info devis
-            document.getElementById("regime-imposition").textContent = data.regime;
-            document.getElementById("objet").textContent = data.objet;
-            document.getElementById("article").textContent = data.article;
-            document.getElementById("validite").textContent = data.validite;
-            document.getElementById("condition").textContent = data.condition;
-            document.getElementById("garantie").textContent = data.garantie;
+            // Infos générales
+            document.getElementById("numero-devis").textContent = data.numeroDevis || "";
+            document.getElementById("date-devis").textContent = data.dateDevis || "";
+
+            // Infos devis
+            document.getElementById("regime-imposition").textContent = data.regime || "";
+            document.getElementById("objet").textContent = data.objet || "";
+            document.getElementById("article").textContent = data.article || "";
+            document.getElementById("validite").textContent = data.validite || "";
+            document.getElementById("condition").textContent = data.condition || "";
+            document.getElementById("garantie").textContent = data.garantie || "";
 
             // Infos client
-            document.getElementById("client-nom").textContent = data.clientName;
-            document.getElementById("client-tel").textContent = data.telephone;
-            document.getElementById("client-email").textContent = data.email;
-            document.getElementById("client-bp").textContent = data.bp;
-            document.getElementById("client-att").textContent = data.att;
-            document.getElementById("client-cc").textContent = data.cc;
+            document.getElementById("client-nom").textContent = data.clientName || "";
+            document.getElementById("client-tel").textContent = data.telephone || "";
+            document.getElementById("client-email").textContent = data.email || "";
+            document.getElementById("client-bp").textContent = data.bp || "";
+            document.getElementById("client-att").textContent = data.att || "";
+            document.getElementById("client-cc").textContent = data.cc || "";
 
-            // Insertion des articles (à partir de la 2e ligne du tableau)
+            // Insertion des articles
             const lignes = document.querySelectorAll("#devis-lignes-articles tr");
             for (let i = 1; i < lignes.length && i - 1 < data.articles.length; i++) {
-                const articleData = data.articles[i - 1];
-                lignes[i].querySelector(".article").textContent = articleData.description;
-                lignes[i].querySelector(".quantite").textContent = articleData.quantity;
-                lignes[i].querySelector(".prix").textContent = articleData.price;
-                lignes[i].querySelector(".total").textContent = articleData.total;
+                const article = data.articles[i - 1];
+                lignes[i].querySelector(".article").textContent = article.description || "";
+                lignes[i].querySelector(".quantite").textContent = article.quantity || "";
+                lignes[i].querySelector(".prix").textContent = formatNumber(article.price || 0);
+                lignes[i].querySelector(".total").textContent = formatNumber(article.total || 0);
             }
 
             // Totaux
             const totalRow = document.querySelector("#devis-lignes-totaux tr");
-            totalRow.querySelector(".Montant-th").textContent = data.montantHT.toFixed(2);
-            totalRow.querySelector(".remise").textContent = data.remise + " %";
-            totalRow.querySelector(".apres-remise").textContent = data.apresRemise.toFixed(2);
-            totalRow.querySelector(".main-oeuvre").textContent = data.mainOeuvre.toFixed(2);
-            totalRow.querySelector(".tva").textContent = data.tva + " %";
-            totalRow.querySelector(".montant-ttc").textContent = data.montantTTC.toFixed(2);
 
+            const montantHT = parseFloat(data.montantHT || 0);
+            const remisePourcent = parseFloat(data.remise || 0);
+            const montantRemise = montantHT * remisePourcent / 100;
 
-            // Montant en lettres (automatique si non fourni)
+            // Montant HT
+            totalRow.querySelector(".Montant-th").textContent = formatNumber(montantHT);
+
+            // Remise
+            totalRow.querySelector(".remise").textContent = formatNumber(montantRemise);
+            const enteteRemise = document.querySelector(".remise-entete");
+            if (enteteRemise) {
+                enteteRemise.textContent = `Remise ${remisePourcent}%`;
+            }
+
+            // Après remise
+            totalRow.querySelector(".apres-remise").textContent = formatNumber(data.apresRemise || 0);
+
+            // Main d’œuvre
+            totalRow.querySelector(".main-oeuvre").textContent = formatNumber(data.mainOeuvre || 0);
+
+            // TVA
+            const tvaPourcent = parseFloat(data.tva || 0);
+            totalRow.querySelector(".tva").textContent = formatNumber(tvaPourcent); // pas de %
+
+            // Montant TTC
+            totalRow.querySelector(".montant-ttc").textContent = formatNumber(data.montantTTC || 0);
+
+            // Montant en lettres
             if (data.montantLettre && data.montantLettre.trim() !== "") {
                 document.getElementById("montant-lettre").textContent = data.montantLettre;
             } else if (data.montantTTC) {
@@ -316,17 +342,12 @@
                 document.getElementById("montant-lettre").textContent = montantLettre;
             }
 
-
             document.title = `${data.numeroDevis || "000"}`;
-            document.getElementById("numero-devis").textContent = data.numeroDevis || "";
-
-
             window.print();
             setTimeout(() => window.close(), 1000);
         };
 
-
-
+        // Convertisseur en lettres (inchangé)
         function numberToWordsFr(n) {
             const unités = ['zéro', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf'];
             const dizaines = ['dix', 'onze', 'douze', 'treize', 'quatorze', 'quinze', 'seize', 'dix-sept', 'dix-huit', 'dix-neuf'];
@@ -358,6 +379,7 @@
             return convert(n) + ' francs CFA./.';
         }
     </script>
+
 
 </body>
 

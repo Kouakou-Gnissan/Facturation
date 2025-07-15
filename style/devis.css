@@ -114,18 +114,42 @@ img {
 
 
 .devis-articles td {
-  border: 1px solid #999;
-  padding: 1px;
-  margin: auto 0;
-  height: 19px;
-  font-weight: bolder;
+    border: 1px solid #999;
+    padding: 1px;
+    height: 19px;
+    font-weight: 500;
 }
 
 
+.devis-articles .article {
+     padding-left: 6px;
+}
+
+.devis-articles .quantite {
+    text-align: center;
+}
+
+.devis-articles .prix {
+    text-align: right;
+    padding-right: 6px;
+
+}
+
+.devis-articles .total {
+    text-align: right;
+    padding-right: 5px;
+}
+
+.devis-articles .ligne1 {
+    text-align: center;
+    font-weight: bold;
+}
 
 .ligne-paire {
-  background-color: #F2F2F2;
+    background-color: #F2F2F2;
 }
+
+
 
 /* section total */
 
@@ -169,11 +193,11 @@ img {
   display: flex;
   justify-content: space-between;
   gap: 150px;
-  margin-bottom: 25px;
+  margin-bottom: 10px;
 }
 
 .footer-adresse {
-  margin-top: 70px;
+  margin-top: 85px;
 }
 
 .footer-signature {
