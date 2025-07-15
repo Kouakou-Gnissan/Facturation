@@ -170,12 +170,15 @@ img {
 
 .devis-total td {
   border: 1px solid #999;
+  font-size: 1rem;
   padding: 1px;
   text-align: center;
   height: 20px;
-  font-weight: bolder;
+  font-weight: 500;
   display: table-cell;
 }
+
+
 
 /* Bas du devis */
 
