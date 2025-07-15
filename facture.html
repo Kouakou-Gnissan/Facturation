@@ -106,8 +106,8 @@
                 <colgroup>
                     <col style="width: 60%;">
                     <col style="width: 8%;">
-                    <col style="width: 12%;">
-                    <col style="width: 25%;">
+                    <col style="width: 15%;">
+                    <col style="width: 22%;">
                 </colgroup>
                 <thead>
                     <tr>
@@ -249,17 +249,17 @@
                     <col style="width: 17.5%;">
                     <col style="width: 10%;">
                     <col style="width: 17%;">
-                    <col style="width: 14.3%;">
-                    <col style="width: 16%;">
-                    <col style="width: 22%;">
+                    <col style="width: 13.3%;">
+                    <col style="width: 19%;">
+                    <col style="width: 20%;">
                 </colgroup>
                 <thead>
                     <tr>
                         <th>MONTANT TH</th>
-                        <th>REMISE %</th>
+                        <th class="remise-entete">REMISE</th>
                         <th>APRES REMISE</th>
                         <th>MAIN D'OEUVRE</th>
-                        <th>TVA NON FACTUREE</th>
+                        <th>TVA NON FACTUREE 18%</th>
                         <th>MONTANT TOTAL HT A PAYER</th>
                     </tr>
                 </thead>
@@ -282,7 +282,7 @@
             <p><strong>ARRETER LA PRESENTE FACTURE A LA SOMME DE :</strong><span id="montant-lettre"></span></p>
             <div class="footer-info">
                 <div class="footer-signature">
-                    <p><strong>LA DIRECTION COMMERCIALE</strong></p>
+                    <p><strong>LA DIRECTION GENERALE</strong></p>
                 </div>
             </div>
 
@@ -302,7 +302,12 @@
             if (number === null || number === undefined || isNaN(number)) {
                 return '';
             }
-            return parseFloat(number);
+
+            return parseFloat(number).toLocaleString('fr-FR', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0,
+                useGrouping: true
+            });
         }
 
         // Fonction principale d'initialisation
@@ -384,11 +389,30 @@
             // Totaux
             const totalRow = document.querySelector("#facture-lignes-totaux tr");
             if (totalRow) {
-                totalRow.querySelector(".Montant-th").textContent = data.montantHT ? formatNumber(data.montantHT) : "";
-                totalRow.querySelector(".remise").textContent = (data.remise || 0) + " %";
+                const montantHT = parseFloat(data.montantHT) || 0;
+                const remisePourcentage = parseFloat(data.remise) || 0;
+
+                // Calcul du montant de la remise
+                const montantRemise = (montantHT * remisePourcentage) / 100;
+
+                // Remplissage des cellules
+                totalRow.querySelector(".Montant-th").textContent = formatNumber(montantHT);
+
+                // Affiche le montant de la remise dans la cellule
+                totalRow.querySelector(".remise").textContent = formatNumber(montantRemise);
+
+                // Mettre à jour le texte de l'en-tête avec le pourcentage (ex : Remise 5%)
+                const enteteRemise = document.querySelector(".remise-entete");
+                if (enteteRemise) {
+                    enteteRemise.textContent = `Remise ${remisePourcentage}%`;
+                }
+
                 totalRow.querySelector(".apres-remise").textContent = data.apresRemise ? formatNumber(data.apresRemise) : "";
                 totalRow.querySelector(".main-oeuvre").textContent = data.mainOeuvre ? formatNumber(data.mainOeuvre) : "";
-                totalRow.querySelector(".tva").textContent = (data.tva || 0) + " %";
+
+                const tvaPourcentage = parseFloat(data.tva) || 0;
+                totalRow.querySelector(".tva").textContent = `${tvaPourcentage}`;
+
                 totalRow.querySelector(".montant-ttc").textContent = data.montantTTC ? formatNumber(data.montantTTC) + ' CFA' : "";
             }
 

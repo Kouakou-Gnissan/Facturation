@@ -31,6 +31,7 @@ img {
     height: 297mm;
     margin: 0 auto;
     padding: 4mm 10mm;
+    padding-right: 20mm;
     box-sizing: border-box;
     font-family: 'Segoe UI', Tahoma, sans-serif;
     color: #000;
@@ -142,8 +143,9 @@ img {
     padding-right: 5px;
 }
 
-.ligne1 {
+.facture-articles .ligne1 {
     text-align: center;
+    font-weight: bold;
 }
 
 .ligne-paire {

@@ -36,6 +36,8 @@
   --jaune-doux: #ffd166;
   --gris-clair: #f5f5f5;
   --gris-fonce: #333333;
+  --text-secondary: #6b7280;
+  --border-color: #e5e7eb;
 
   /* Dimensions */
   --sidebar-width: 280px;
@@ -245,6 +247,9 @@ body {
   display: block;
 }
 
+
+
+
 /* Contenu principal */
 .app-content {
   flex: 1;
@@ -351,8 +356,13 @@ body {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .loading-spinner p {
@@ -1126,11 +1136,11 @@ body {
   .charts-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .activity-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .stats-grid {
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   }
@@ -1280,6 +1290,7 @@ body {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1291,6 +1302,7 @@ body {
     opacity: 0;
     transform: translateX(-30px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -1302,6 +1314,7 @@ body {
     opacity: 0;
     transform: translateY(30px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1322,15 +1335,42 @@ body {
   animation-fill-mode: both;
 }
 
-.sidebar-nav li:nth-child(1) { animation-delay: 0.1s; }
-.sidebar-nav li:nth-child(2) { animation-delay: 0.2s; }
-.sidebar-nav li:nth-child(3) { animation-delay: 0.3s; }
-.sidebar-nav li:nth-child(4) { animation-delay: 0.4s; }
-.sidebar-nav li:nth-child(5) { animation-delay: 0.5s; }
-.sidebar-nav li:nth-child(6) { animation-delay: 0.6s; }
+.sidebar-nav li:nth-child(1) {
+  animation-delay: 0.1s;
+}
 
-.main-stats .stat-card:nth-child(1) { animation-delay: 0.1s; }
-.main-stats .stat-card:nth-child(2) { animation-delay: 0.2s; }
-.main-stats .stat-card:nth-child(3) { animation-delay: 0.3s; }
-.main-stats .stat-card:nth-child(4) { animation-delay: 0.4s; }
+.sidebar-nav li:nth-child(2) {
+  animation-delay: 0.2s;
+}
 
+.sidebar-nav li:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.sidebar-nav li:nth-child(4) {
+  animation-delay: 0.4s;
+}
+
+.sidebar-nav li:nth-child(5) {
+  animation-delay: 0.5s;
+}
+
+.sidebar-nav li:nth-child(6) {
+  animation-delay: 0.6s;
+}
+
+.main-stats .stat-card:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.main-stats .stat-card:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.main-stats .stat-card:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.main-stats .stat-card:nth-child(4) {
+  animation-delay: 0.4s;
+}
