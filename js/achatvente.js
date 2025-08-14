@@ -12,34 +12,24 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-// Vérifier connexion utilisateur
-auth.onAuthStateChanged(user => {
-    if (!user) {
-        // window.location.replace("login.html");
-    } else {
-        console.log("Utilisateur connecté :", user.email);
-    }
-});
+// Configuration du cache
+const CACHE_CONFIG = {
+    KEY: "ventesCache_v2",
+    MAX_AGE: 30 * 60 * 1000, // 30 minutes
+    SYNC_INTERVAL: 2 * 60 * 1000 // Resync toutes les 2 minutes
+};
 
-// Fonction de déconnexion
-function logout() {
-    auth.signOut()
-        .then(() => {
-            // Déconnexion réussie
-            console.log("Utilisateur déconnecté");
-            // Redirection vers la page de connexion
-            window.location.href = "login.html";
-            showNotification("Déconnecté avec succes !","info")
-        })
-        .catch((error) => {
-            // Gestion des erreurs
-            console.error("Erreur lors de la déconnexion:", error);
-            alert("Une erreur est survenue lors de la déconnexion");
-        });
-}
-document.getElementById('logoutButton').addEventListener('click', logout);
+// Variables globales
+const ventesLocal = [];
+let ventesAffichees = [];
+const ventesParPage = 12;
+let pageActuelle = 1;
+let venteEnCoursId = null;
+let lastSyncTime = 0;
+let isSyncing = false;
+let unsubscribeFirestore;
 
-// Sélecteurs DOM pour tableau, pagination, etc.
+// Sélecteurs DOM
 const tableBody = document.getElementById('achat-vente-table-body');
 const noVenteMessage = document.getElementById('no-achat-vente');
 const paginationContainer = document.getElementById('pagination');
@@ -50,18 +40,161 @@ const pageNumbersContainer = document.getElementById('page-numbers');
 const searchInput = document.getElementById('search-input');
 const dateFilter = document.getElementById('datefilter');
 const modalSave = document.getElementById("modalSave");
-const modalFinish = document.getElementById('modalFinish')
+const modalFinish = document.getElementById('modalFinish');
+const openModal = document.getElementById('openModal');
+const mouvementModal = document.getElementById("mouvementModal");
+const modalTitle = document.getElementById("modalTitle");
+const modalClose = document.getElementById("modalClose");
+const modalCancel = document.getElementById("modalCancel");
+const BtnOpenModal = document.getElementById('btnOpenModal');
 
+// ---------------------------
+// INITIALISATION
+// ---------------------------
 
-// Variables globales
-const CACHE_KEY = "ventesCacheSession";
-const ventesLocal = [];
-let ventesAffichees = [];  // tableau filtré affiché
-const ventesParPage = 12;
-let pageActuelle = 1;
-let venteEnCoursId = null; // pour edition ou ajout
+// Vérifier connexion utilisateur
+auth.onAuthStateChanged(user => {
+    if (!user) {
+        window.location.replace("login.html");
+    } else {
+        console.log("Utilisateur connecté :", user.email);
+        startDataSync();
+        setupEventListeners();
+    }
+});
 
-// Fonction pour trier ventesLocal par createdAt décroissant (plus récent en premier)
+// Fonction de déconnexion
+function logout() {
+    auth.signOut()
+        .then(() => {
+            console.log("Utilisateur déconnecté");
+            window.location.href = "login.html";
+            showNotification("Déconnecté avec succès !", "info");
+        })
+        .catch((error) => {
+            console.error("Erreur lors de la déconnexion:", error);
+            showNotification("Erreur lors de la déconnexion", "error");
+        });
+}
+
+// ---------------------------
+// SYNC ET CACHE
+// ---------------------------
+
+function startDataSync() {
+    if (!chargerDepuisSession()) {
+        console.log("🔄 Chargement initial depuis Firestore...");
+    }
+    unsubscribeFirestore = setupRealtimeSync();
+    
+    setInterval(() => {
+        if (!isSyncing && navigator.onLine) {
+            forceRefresh();
+        }
+    }, CACHE_CONFIG.SYNC_INTERVAL);
+}
+
+function setupRealtimeSync() {
+    isSyncing = true;
+    return db.collection("ventes")
+        .orderBy("createdAt", "desc")
+        .limit(1000)
+        .onSnapshot(snapshot => {
+            isSyncing = false;
+            lastSyncTime = Date.now();
+            let modif = false;
+
+            snapshot.docChanges().forEach(change => {
+                const vente = { 
+                    id: change.doc.id, 
+                    ...change.doc.data(),
+                    createdAt: change.doc.data().createdAt?.toDate?.() || change.doc.data().createdAt,
+                    updatedAt: change.doc.data().updatedAt?.toDate?.() || Date.now()
+                };
+
+                if (change.type === "added") {
+                    if (!ventesLocal.some(v => v.id === vente.id)) {
+                        ventesLocal.push(vente);
+                        modif = true;
+                    }
+                }
+                if (change.type === "modified") {
+                    const index = ventesLocal.findIndex(v => v.id === vente.id);
+                    if (index !== -1) {
+                        ventesLocal[index] = vente;
+                        modif = true;
+                    }
+                }
+                if (change.type === "removed") {
+                    const index = ventesLocal.findIndex(v => v.id === vente.id);
+                    if (index !== -1) {
+                        ventesLocal.splice(index, 1);
+                        modif = true;
+                    }
+                }
+            });
+
+            if (modif) {
+                processDataUpdate();
+            }
+        }, error => {
+            console.error("Erreur synchronisation:", error);
+            isSyncing = false;
+        });
+}
+
+function processDataUpdate() {
+    trierVentesParDate();
+    sauvegarderDansSession();
+    filtrerVentes();
+}
+
+function forceRefresh() {
+    console.log("🔄 Forcer la resynchronisation");
+    if (unsubscribeFirestore) unsubscribeFirestore();
+    unsubscribeFirestore = setupRealtimeSync();
+}
+
+function chargerDepuisSession() {
+    const cacheData = sessionStorage.getItem(CACHE_CONFIG.KEY);
+    if (!cacheData) return false;
+
+    try {
+        const parsed = JSON.parse(cacheData);
+        const cacheExpired = Date.now() - parsed.timestamp > CACHE_CONFIG.MAX_AGE;
+        
+        if (parsed.version !== 2 || cacheExpired) {
+            sessionStorage.removeItem(CACHE_CONFIG.KEY);
+            return false;
+        }
+
+        ventesLocal.length = 0;
+        ventesLocal.push(...parsed.data);
+        trierVentesParDate();
+        ventesAffichees = [...ventesLocal];
+        afficherVentesPage(pageActuelle, ventesAffichees);
+        return true;
+    } catch (e) {
+        console.error("Erreur cache:", e);
+        sessionStorage.removeItem(CACHE_CONFIG.KEY);
+        return false;
+    }
+}
+
+function sauvegarderDansSession() {
+    const cacheData = {
+        data: ventesLocal,
+        timestamp: Date.now(),
+        version: 2
+    };
+    sessionStorage.setItem(CACHE_CONFIG.KEY, JSON.stringify(cacheData));
+    console.log("💾 Cache mis à jour");
+}
+
+// ---------------------------
+// FONCTIONS EXISTANTES (conservées)
+// ---------------------------
+
 function trierVentesParDate() {
     ventesLocal.sort((a, b) => {
         const aDate = a.createdAt ? (a.createdAt.toMillis ? a.createdAt.toMillis() : new Date(a.createdAt).getTime()) : 0;
@@ -70,34 +203,6 @@ function trierVentesParDate() {
     });
 }
 
-// Charger données depuis sessionStorage
-function chargerDepuisSession() {
-
-    const cacheData = sessionStorage.getItem(CACHE_KEY);
-    if (cacheData) {
-        try {
-            const ventes = JSON.parse(cacheData);
-            ventesLocal.push(...ventes);
-            trierVentesParDate();
-            ventesAffichees = [...ventesLocal];
-            afficherVentesPage(pageActuelle, ventesAffichees);
-            console.log("✅ Données chargées depuis sessionStorage");
-            return true;
-        } catch (e) {
-            console.warn("Erreur lecture sessionStorage", e);
-            sessionStorage.removeItem(CACHE_KEY);
-        }
-    }
-    return false;
-}
-
-// Sauvegarder dans sessionStorage
-function sauvegarderDansSession() {
-    sessionStorage.setItem(CACHE_KEY, JSON.stringify(ventesLocal));
-    console.log("💾 Données mises en sessionStorage");
-}
-
-// Fonction pour afficher les ventes (tableau + pagination)
 function afficherVentesPage(page, source = ventesAffichees) {
     const debut = (page - 1) * ventesParPage;
     const fin = debut + ventesParPage;
@@ -137,8 +242,6 @@ function afficherVentesPage(page, source = ventesAffichees) {
     afficherStats();
 }
 
-
-// Mise à jour pagination dynamique
 function majPagination(source) {
     const totalPages = Math.ceil(source.length / ventesParPage);
     paginationInfoText.textContent = `Affichage de ${(pageActuelle - 1) * ventesParPage + 1}-${Math.min(pageActuelle * ventesParPage, source.length)} sur ${source.length} mouvements`;
@@ -159,22 +262,6 @@ function majPagination(source) {
     }
 }
 
-// Pagination boutons précédent/suivant
-prevPageBtn.addEventListener('click', () => {
-    if (pageActuelle > 1) {
-        pageActuelle--;
-        afficherVentesPage(pageActuelle, ventesAffichees);
-    }
-});
-nextPageBtn.addEventListener('click', () => {
-    const totalPages = Math.ceil(ventesAffichees.length / ventesParPage);
-    if (pageActuelle < totalPages) {
-        pageActuelle++;
-        afficherVentesPage(pageActuelle, ventesAffichees);
-    }
-});
-
-// Fonction filtrage (texte + date)
 function filtrerVentes() {
     const recherche = searchInput.value.trim().toLowerCase();
     const dateValeur = dateFilter.value;
@@ -183,7 +270,10 @@ function filtrerVentes() {
         const fournisseur = (vente.Fournisseur || '').toLowerCase();
         const article = (vente.Article || '').toLowerCase();
 
-        const correspondRecherche = recherche === '' || fournisseur.includes(recherche) || article.includes(recherche);
+        const correspondRecherche = recherche === '' || 
+            fournisseur.includes(recherche) || 
+            article.includes(recherche);
+        
         const correspondDate = !dateValeur || vente.Date === dateValeur;
 
         return correspondRecherche && correspondDate;
@@ -193,11 +283,6 @@ function filtrerVentes() {
     afficherVentesPage(pageActuelle, ventesAffichees);
 }
 
-// Écouteurs sur filtres
-searchInput.addEventListener('input', filtrerVentes);
-dateFilter.addEventListener('change', filtrerVentes);
-
-// Affichage statistiques
 function afficherStats() {
     let totalAchat = 0;
     let totalVente = 0;
@@ -209,7 +294,6 @@ function afficherStats() {
         totalCommission += parseFloat(vente.Commission) || 0;
     });
 
-
     const margeBrute = totalVente - totalAchat - totalCommission;
     const margePourcentage = totalAchat > 0 ? (margeBrute / (totalAchat + totalCommission)) * 100 : 0;
 
@@ -219,65 +303,34 @@ function afficherStats() {
     document.getElementById('marge-pourcentage').textContent = margePourcentage.toFixed(0) + '%';
 }
 
+// ---------------------------
+// GESTION DES MODALS
+// ---------------------------
 
-// ouverture et fermeture du modale pour l'ajout et la modification
-
-// Sélecteurs modal
-const openModal = document.getElementById('openModal');
-const mouvementModal = document.getElementById("mouvementModal");
-const modalTitle = document.getElementById("modalTitle");
-const modalClose = document.getElementById("modalClose");
-const modalCancel = document.getElementById("modalCancel");
-const BtnOpenModal = document.getElementById('btnOpenModal')
-
-// Ouvrir modal nouveau mouvement
 function openMouvementModal() {
     modalTitle.textContent = "Nouveau Mouvement";
     document.getElementById("mouvementForm").reset();
+    const today = new Date();
+    const formattedDate = today.toISOString().split('T')[0];
+    const dateInput = document.getElementById("date");
+    if (dateInput) {
+        dateInput.value = formattedDate;
+    }
     mouvementModal.classList.add('show');
-
 }
 
-// Fermer modal
 function closeMouvementModal() {
     mouvementModal.classList.remove('show');
 }
 
-// Fermer modal si clic à l'extérieur
-window.addEventListener("click", (e) => {
-    if (e.target === mouvementModal) {
-        closeMouvementModal();
-    }
-});
-
-
-// Écouteurs sur boutons fermeture
-modalClose.addEventListener("click", closeMouvementModal);
-modalCancel.addEventListener("click", closeMouvementModal);
-openModal.addEventListener("click", openMouvementModal);
-BtnOpenModal.addEventListener("click", openMouvementModal);
-
-
-// Pour le modal de la visualisation
-
-// Fonction pour fermer le modal
 function openViewModal() {
     document.getElementById('viewModal').classList.add('show');
 }
 
-// Fonction pour fermer le modal de visualisation
 function closeViewModal() {
     document.getElementById('viewModal').classList.remove('show');
 }
 
-// Fermer le modal de visualisation en cliquant à l'extérieur
-document.getElementById('viewModal').addEventListener('click', (e) => {
-    if (e.target === document.getElementById('viewModal')) {
-        closeViewModal();
-    }
-});
-
-// Voir les détails d'une vente 
 window.previewVente = function (id) {
     const vente = ventesLocal.find(v => v.id === id);
     if (!vente) return alert("Vente introuvable");
@@ -295,43 +348,8 @@ window.previewVente = function (id) {
     document.getElementById("view-benefice").textContent = formatCurrency(vente.Benefice);
     document.getElementById("view-numerofacture").textContent = vente.NumeroFacture || 'Non spécifié';
     document.getElementById("view-marge").textContent = vente.Marge || '';
-
 };
 
-// Fonction pour formater les nombres avec séparateurs de milliers et "CFA"
-function formatCurrency(amount) {
-    if (amount === undefined || amount === null) return '0 CFA';
-
-    // Convertir en nombre au cas où c'est une chaîne
-    const num = Number(amount);
-
-    // Formater avec séparateurs de milliers
-    const formatted = new Intl.NumberFormat('fr-FR', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0
-    }).format(num);
-
-    return `${formatted} CFA`;
-}
-
-// Fonction pour formater les montants du tableau
-function formatCurrencyTB(amount) {
-    if (amount === undefined || amount === null) return '0 CFA';
-    const num = Number(amount);
-    const formatted = new Intl.NumberFormat('fr-FR', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0
-    }).format(num);
-    return `${formatted}`;
-}
-
-// Écouteurs d'événements
-document.getElementById('viewModalClose').addEventListener('click', closeViewModal);
-document.getElementById('viewModalCloseBtn').addEventListener('click', closeViewModal);
-
-
-
-// Édition d'une vente
 window.editerVente = function (id) {
     const vente = ventesLocal.find(v => v.id === id);
     if (!vente) return alert("Vente introuvable");
@@ -351,256 +369,181 @@ window.editerVente = function (id) {
     document.getElementById("benefice").value = vente.Benefice || '';
     document.getElementById("numerofacture").value = vente.NumeroFacture || '';
     document.getElementById("marge").value = vente.Marge || '';
-
 };
 
-// Suppression d'une vente
 window.supprimerVente = async function (id) {
     if (!confirm("Voulez-vous vraiment supprimer ce mouvement ?")) return;
     try {
         await db.collection("ventes").doc(id).delete();
-        // onSnapshot gère la mise à jour locale
         const index = ventesLocal.findIndex(v => v.id === id);
         if (index !== -1) ventesLocal.splice(index, 1);
 
-        // Mise à jour affichage et cache
         ventesAffichees = [...ventesLocal];
         sauvegarderDansSession();
         afficherVentesPage(pageActuelle, ventesAffichees);
-        console.log("vente supprimer")
-
+        showNotification("Mouvement supprimé avec succès", "success");
     } catch (error) {
         console.error("Erreur lors de la suppression :", error);
-        alert("Erreur lors de la suppression. Voir console.");
+        showNotification("Erreur lors de la suppression", "error");
     }
 };
 
-// Sauvegarde/Modification d'une vente via modal
-modalSave.addEventListener('click', async (e) => {
-    e.preventDefault();
+// ---------------------------
+// ÉVÉNEMENTS
+// ---------------------------
 
-    // 1. Validation des champs requis
-    const requiredFields = [
-        'date', 'fournisseur', 'article', 'client',
-        'montantachat', 'montantvente', 'ordrede'
-    ];
-
-    let isValid = true;
-    const invalidFields = [];
-
-    requiredFields.forEach(fieldId => {
-        const field = document.getElementById(fieldId);
-        if (!field.value.trim()) {
-            isValid = false;
-            invalidFields.push(fieldId);
-            field.classList.add('is-invalid');
-        } else {
-            field.classList.remove('is-invalid');
+function setupEventListeners() {
+    // Pagination
+    prevPageBtn.addEventListener('click', () => {
+        if (pageActuelle > 1) {
+            pageActuelle--;
+            afficherVentesPage(pageActuelle, ventesAffichees);
         }
     });
 
-    if (!isValid) {
-        showNotification(`Champs requis manquants: ${invalidFields.join(', ')}`, 'error');
-        return;
-    }
-
-    const venteData = {
-        Date: document.getElementById("date").value,
-        Fournisseur: document.getElementById("fournisseur").value,
-        Article: document.getElementById("article").value,
-        Client: document.getElementById("client").value,
-        MontantAchat: parseFloat(document.getElementById("montantachat").value) || 0,
-        MontantVente: parseFloat(document.getElementById("montantvente").value) || 0,
-        Commission: parseFloat(document.getElementById("commission").value) || 0,
-        Ordrede: document.getElementById("ordrede").value,
-        Benefice: parseFloat(document.getElementById("benefice").value) || 0,
-        NumeroFacture: document.getElementById("numerofacture").value,
-        Marge: document.getElementById("marge").value,
-    };
-
-    try {
-        if (venteEnCoursId) {
-            await db.collection("ventes").doc(venteEnCoursId).update(venteData);
-            // Mise à jour locale
-            const index = ventesLocal.findIndex(v => v.id === venteEnCoursId);
-            if (index !== -1) {
-                ventesLocal[index] = { id: venteEnCoursId, ...venteData };
-            }
-            closeMouvementModal();
-            showNotification("Modifier avec succes", "info");
-            
-            console.log("Vente mise à jour :", venteEnCoursId);
-        } else {
-            venteData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-            const docRef = await db.collection("ventes").add(venteData);
-            // Ajout local (ici on ne connait pas le timestamp exact ni createdAt réel)
-            ventesLocal.unshift({ id: docRef.id, ...venteData, createdAt: new Date().getTime() });
-            showNotification("Enregistrer avec succes", "info")
-            document.getElementById("mouvementForm").reset();
-            console.log("Nouvelle vente ajoutée");
-        }
-
-        ventesAffichees = [...ventesLocal];
-        sauvegarderDansSession();
-        afficherVentesPage(pageActuelle, ventesAffichees);
-
-        venteEnCoursId = null;
-
-    } catch (error) {
-        console.error("Erreur lors de la sauvegarde de la vente :", error);
-        alert("Erreur lors de la sauvegarde. Voir console.");
-    }
-});
-
-// pour le bouton terminer sauvegarde,modification
-
-modalFinish.addEventListener('click', async (e) => {
-    e.preventDefault();
-
-    // 1. Validation des champs requis
-    const requiredFields = [
-        'date', 'fournisseur', 'article', 'client',
-        'montantachat', 'montantvente', 'ordrede'
-    ];
-
-    let isValid = true;
-    const invalidFields = [];
-
-    requiredFields.forEach(fieldId => {
-        const field = document.getElementById(fieldId);
-        if (!field.value.trim()) {
-            isValid = false;
-            invalidFields.push(fieldId);
-            field.classList.add('is-invalid');
-        } else {
-            field.classList.remove('is-invalid');
+    nextPageBtn.addEventListener('click', () => {
+        const totalPages = Math.ceil(ventesAffichees.length / ventesParPage);
+        if (pageActuelle < totalPages) {
+            pageActuelle++;
+            afficherVentesPage(pageActuelle, ventesAffichees);
         }
     });
 
-    if (!isValid) {
-        showNotification(`Champs requis manquants: ${invalidFields.join(', ')}`, 'error');
-        return;
-    }
+    // Filtres
+    searchInput.addEventListener('input', filtrerVentes);
+    dateFilter.addEventListener('change', filtrerVentes);
 
-    const venteData = {
-        Date: document.getElementById("date").value,
-        Fournisseur: document.getElementById("fournisseur").value,
-        Article: document.getElementById("article").value,
-        Client: document.getElementById("client").value,
-        MontantAchat: parseFloat(document.getElementById("montantachat").value) || 0,
-        MontantVente: parseFloat(document.getElementById("montantvente").value) || 0,
-        Commission: parseFloat(document.getElementById("commission").value) || 0,
-        Ordrede: document.getElementById("ordrede").value,
-        Benefice: parseFloat(document.getElementById("benefice").value) || 0,
-        NumeroFacture: document.getElementById("numerofacture").value,
-        Marge: document.getElementById("marge").value,
-    };
+    // Modals
+    modalClose.addEventListener("click", closeMouvementModal);
+    modalCancel.addEventListener("click", closeMouvementModal);
+    openModal.addEventListener("click", openMouvementModal);
+    BtnOpenModal.addEventListener("click", openMouvementModal);
+    document.getElementById('viewModalClose').addEventListener('click', closeViewModal);
+    document.getElementById('viewModalCloseBtn').addEventListener('click', closeViewModal);
 
-    try {
-        if (venteEnCoursId) {
-            await db.collection("ventes").doc(venteEnCoursId).update(venteData);
-            // Mise à jour locale
-            const index = ventesLocal.findIndex(v => v.id === venteEnCoursId);
-            if (index !== -1) {
-                ventesLocal[index] = { id: venteEnCoursId, ...venteData };
-            }
-            closeMouvementModal();
-            showNotification("Modifier avec succes", "info");
-            console.log("Vente mise à jour :", venteEnCoursId);
-        } else {
-            venteData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-            const docRef = await db.collection("ventes").add(venteData);
-            // Ajout local (ici on ne connait pas le timestamp exact ni createdAt réel)
-            ventesLocal.unshift({ id: docRef.id, ...venteData, createdAt: new Date().getTime() });
-            closeMouvementModal();
-            showNotification("enregistrer avec succes", "info");
-            console.log("Nouvelle vente ajoutée");
-        }
+    // Clic externe modal
+    window.addEventListener("click", (e) => {
+        if (e.target === mouvementModal) closeMouvementModal();
+        if (e.target === document.getElementById('viewModal')) closeViewModal();
+    });
 
-        ventesAffichees = [...ventesLocal];
-        sauvegarderDansSession();
-        afficherVentesPage(pageActuelle, ventesAffichees);
+    // Déconnexion
+    document.getElementById('logoutButton').addEventListener('click', logout);
 
-        venteEnCoursId = null;
-
-    } catch (error) {
-        console.error("Erreur lors de la sauvegarde de la vente :", error);
-        alert("Erreur lors de la sauvegarde. Voir console.");
-    }
-});
-
-// Synchronisation Firestore temps réel + gestion cache
-if (!chargerDepuisSession()) {
-    console.log("🔄 Chargement depuis Firestore...");
-    db.collection("ventes")
-        .orderBy("createdAt", "desc")
-        .limit(500)
-        .onSnapshot(snapshot => {
-            let modif = false;
-            snapshot.docChanges().forEach(change => {
-                const vente = { id: change.doc.id, ...change.doc.data() };
-
-                if (change.type === "added") {
-                    if (!ventesLocal.some(v => v.id === vente.id)) {
-                        ventesLocal.push(vente);
-                        modif = true;
-                    }
-                }
-                if (change.type === "modified") {
-                    const index = ventesLocal.findIndex(v => v.id === vente.id);
-                    if (index !== -1) {
-                        ventesLocal[index] = vente;
-                        modif = true;
-                    }
-                }
-                if (change.type === "removed") {
-                    const index = ventesLocal.findIndex(v => v.id === vente.id);
-                    if (index !== -1) {
-                        ventesLocal.splice(index, 1);
-                        modif = true;
-                    }
-                }
-            });
-
-            if (modif) {
-
-                trierVentesParDate();
-                sauvegarderDansSession();
-                filtrerVentes();
-            }
-        });
+    // Sauvegarde
+    modalSave.addEventListener('click', handleSaveVente);
+    modalFinish.addEventListener('click', handleSaveVente);
 }
 
-// gestion des notitification 
+async function handleSaveVente(e) {
+    e.preventDefault();
 
-document.addEventListener('DOMContentLoaded', function () {
-    const link1 = document.getElementById('archive');
+    // Validation des champs requis
+    const requiredFields = [
+        'date', 'fournisseur', 'article', 'client',
+        'montantachat', 'montantvente', 'ordrede'
+    ];
 
-    if (link1) {
-        link1.addEventListener('click', function (e) {
-            e.preventDefault(); // Empêche le scroll en haut de page
-            showNotification("Fonctionnalité bientôt disponible", "info");
-        });
+    let isValid = true;
+    const invalidFields = [];
+
+    requiredFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (!field.value.trim()) {
+            isValid = false;
+            invalidFields.push(fieldId);
+            field.classList.add('is-invalid');
+        } else {
+            field.classList.remove('is-invalid');
+        }
+    });
+
+    if (!isValid) {
+        showNotification(`Champs requis manquants: ${invalidFields.join(', ')}`, 'error');
+        return;
     }
 
-});
+    const venteData = {
+        Date: document.getElementById("date").value,
+        Fournisseur: document.getElementById("fournisseur").value,
+        Article: document.getElementById("article").value,
+        Client: document.getElementById("client").value,
+        MontantAchat: parseFloat(document.getElementById("montantachat").value) || 0,
+        MontantVente: parseFloat(document.getElementById("montantvente").value) || 0,
+        Commission: parseFloat(document.getElementById("commission").value) || 0,
+        Ordrede: document.getElementById("ordrede").value,
+        Benefice: parseFloat(document.getElementById("benefice").value) || 0,
+        NumeroFacture: document.getElementById("numerofacture").value,
+        Marge: document.getElementById("marge").value,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
 
+    try {
+        if (venteEnCoursId) {
+            // Modification
+            await db.collection("ventes").doc(venteEnCoursId).update(venteData);
+            const index = ventesLocal.findIndex(v => v.id === venteEnCoursId);
+            if (index !== -1) {
+                ventesLocal[index] = { id: venteEnCoursId, ...venteData };
+            }
+            showNotification("Mouvement modifié avec succès", "success");
+        } else {
+            // Nouvelle vente
+            venteData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            const docRef = await db.collection("ventes").add(venteData);
+            ventesLocal.unshift({ id: docRef.id, ...venteData });
+            showNotification("Mouvement enregistré avec succès", "success");
+            document.getElementById("mouvementForm").reset();
+        }
+
+        ventesAffichees = [...ventesLocal];
+        sauvegarderDansSession();
+        afficherVentesPage(pageActuelle, ventesAffichees);
+        closeMouvementModal();
+        venteEnCoursId = null;
+
+    } catch (error) {
+        console.error("Erreur lors de la sauvegarde :", error);
+        showNotification("Erreur lors de la sauvegarde", "error");
+    }
+}
+
+// ---------------------------
+// UTILITAIRES
+// ---------------------------
+
+function formatCurrency(amount) {
+    if (amount === undefined || amount === null) return '0 CFA';
+    const num = Number(amount);
+    const formatted = new Intl.NumberFormat('fr-FR', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(num);
+    return `${formatted} CFA`;
+}
+
+function formatCurrencyTB(amount) {
+    if (amount === undefined || amount === null) return '0 CFA';
+    const num = Number(amount);
+    const formatted = new Intl.NumberFormat('fr-FR', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(num);
+    return `${formatted}`;
+}
 
 function showNotification(message, type = 'info') {
     const container = document.getElementById('notificationsContainer');
     if (!container) return;
 
-    // Créer l'élément de notification
     const notification = document.createElement('div');
     notification.className = 'notification ' + type;
 
-    // Définir les icônes selon le type
     let iconClass = 'fas fa-info-circle';
     if (type === 'success') iconClass = 'fas fa-check-circle';
     else if (type === 'error') iconClass = 'fas fa-exclamation-circle';
     else if (type === 'warning') iconClass = 'fas fa-exclamation-triangle';
 
-    // Créer le contenu HTML
     notification.innerHTML = `
         <div class="notification-icon">
             <i class="${iconClass}"></i>
@@ -611,28 +554,42 @@ function showNotification(message, type = 'info') {
         </button>
     `;
 
-    // Gérer la fermeture
     const closeBtn = notification.querySelector('.notification-close');
     if (closeBtn) {
-        closeBtn.addEventListener('click', function () {
+        closeBtn.addEventListener('click', function() {
             notification.remove();
         });
     }
 
-    // Ajouter la notification au conteneur
     container.appendChild(notification);
 
-    // Afficher avec une animation simple
-    setTimeout(function () {
+    setTimeout(function() {
         notification.classList.add('show');
     }, 100);
 
-    // Retirer automatiquement après 5 secondes
-    setTimeout(function () {
+    setTimeout(function() {
         notification.classList.remove('show');
-        setTimeout(function () {
+        setTimeout(function() {
             notification.remove();
         }, 300);
     }, 5000);
 }
 
+// ---------------------------
+// NETTOYAGE
+// ---------------------------
+
+window.addEventListener('beforeunload', () => {
+    if (unsubscribeFirestore) unsubscribeFirestore();
+});
+
+// Initialisation
+document.addEventListener('DOMContentLoaded', function() {
+    const archiveBtn = document.getElementById('archive');
+    if (archiveBtn) {
+        archiveBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            showNotification("Fonctionnalité bientôt disponible", "info");
+        });
+    }
+});

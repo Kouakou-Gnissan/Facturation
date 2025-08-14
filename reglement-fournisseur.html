@@ -239,14 +239,21 @@
                     <div class="form-group">
                         <label for="article">Article</label>
                         <input type="text" id="article" required>
-                    </div>                    
+                    </div>
                     <div class="form-group">
                         <label for="montantachat">Montant d'achat</label>
                         <input type="number" id="montantachat" required>
                     </div>
                     <div class="form-group">
-                        <label for="moyenpaiement">Monyen de paiement</label>
-                        <input type="text" id="moyenpaiement" required>
+                        <label for="moyenpaiement">Moyen de paiement</label>
+                        <select id="moyenpaiement" required>
+                            <option value="">-- Sélectionnez un moyen --</option>
+                            <option value="Espèces">Espèces</option>
+                            <option value="Carte bancaire">Carte bancaire</option>
+                            <option value="Chèque">Chèque</option>
+                            <option value="Virement">Virement</option>
+                            <option value="Prélèvement">Prélèvement</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label for="modalite">Modalité de règlement</label>

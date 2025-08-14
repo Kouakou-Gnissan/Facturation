@@ -12,34 +12,24 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-// Vérifier connexion utilisateur
-auth.onAuthStateChanged(user => {
-    if (!user) {
-        window.location.replace("login.html");
-    } else {
-        console.log("Utilisateur connecté :", user.email);
-    }
-});
+// Configuration du cache
+const CACHE_CONFIG = {
+    KEY: "reglementsCache_v2",
+    MAX_AGE: 30 * 60 * 1000, // 30 minutes
+    SYNC_INTERVAL: 2 * 60 * 1000 // Resync toutes les 2 minutes
+};
 
-// Fonction de déconnexion
-function logout() {
-    auth.signOut()
-        .then(() => {
-            // Déconnexion réussie
-            console.log("Utilisateur déconnecté");
-            // Redirection vers la page de connexion
-            window.location.href = "login.html";
-            showNotification("Déconnecté avec succes !","info")
-        })
-        .catch((error) => {
-            // Gestion des erreurs
-            console.error("Erreur lors de la déconnexion:", error);
-            alert("Une erreur est survenue lors de la déconnexion");
-        });
-}
-document.getElementById('logoutButton').addEventListener('click', logout);
+// Variables globales
+const reglementsLocal = [];
+let reglementsAffiches = [];
+const reglementsParPage = 12;
+let pageActuelle = 1;
+let reglementEnCoursId = null;
+let lastSyncTime = 0;
+let isSyncing = false;
+let unsubscribeFirestore;
 
-// Sélecteurs DOM pour tableau, pagination, etc.
+// Sélecteurs DOM
 const tableBody = document.getElementById('reglement-fournisseur-table-body');
 const noReglementMessage = document.getElementById('no-reglement-fournisseur');
 const paginationContainer = document.getElementById('pagination');
@@ -51,16 +41,156 @@ const searchInput = document.getElementById('search-input');
 const dateFilter = document.getElementById('datefilter');
 const modalSave = document.getElementById("modalSave");
 const modalFinish = document.getElementById('modalFinish');
+const mouvementModal = document.getElementById("mouvementModal");
+const modalTitle = document.getElementById("modalTitle");
+const modalClose = document.getElementById("modalClose");
+const modalCancel = document.getElementById("modalCancel");
+const openModal = document.getElementById('openModal');
+const BtnOpenModal = document.getElementById('btnOpenModal');
 
-// Variables globales
-const CACHE_KEY = "reglementsCacheSession";
-const reglementsLocal = [];
-let reglementsAffiches = [];  // tableau filtré affiché
-const reglementsParPage = 12;
-let pageActuelle = 1;
-let reglementEnCoursId = null; // pour edition ou ajout
+// ---------------------------
+// INITIALISATION
+// ---------------------------
 
-// Fonction pour trier reglementsLocal par createdAt décroissant (plus récent en premier)
+// Vérifier connexion utilisateur
+auth.onAuthStateChanged(user => {
+    if (!user) {
+        window.location.replace("login.html");
+    } else {
+        console.log("Utilisateur connecté :", user.email);
+        startDataSync();
+        setupEventListeners();
+    }
+});
+
+// Fonction de déconnexion
+function logout() {
+    auth.signOut()
+        .then(() => {
+            console.log("Utilisateur déconnecté");
+            window.location.href = "login.html";
+            showNotification("Déconnecté avec succès !", "info");
+        })
+        .catch((error) => {
+            console.error("Erreur lors de la déconnexion:", error);
+            showNotification("Erreur lors de la déconnexion", "error");
+        });
+}
+
+// ---------------------------
+// SYNC ET CACHE
+// ---------------------------
+
+function startDataSync() {
+    if (!chargerDepuisSession()) {
+        console.log("🔄 Chargement initial depuis Firestore...");
+    }
+    unsubscribeFirestore = setupRealtimeSync();
+    
+    setInterval(() => {
+        if (!isSyncing && navigator.onLine) {
+            forceRefresh();
+        }
+    }, CACHE_CONFIG.SYNC_INTERVAL);
+}
+
+function setupRealtimeSync() {
+    isSyncing = true;
+    return db.collection("reglementsFournisseurs")
+        .orderBy("createdAt", "desc")
+        .limit(1000)
+        .onSnapshot(snapshot => {
+            isSyncing = false;
+            lastSyncTime = Date.now();
+            let modif = false;
+
+            snapshot.docChanges().forEach(change => {
+                const reglement = { 
+                    id: change.doc.id, 
+                    ...change.doc.data(),
+                    createdAt: change.doc.data().createdAt?.toDate?.() || change.doc.data().createdAt,
+                    updatedAt: change.doc.data().updatedAt?.toDate?.() || Date.now()
+                };
+
+                if (change.type === "added") {
+                    if (!reglementsLocal.some(r => r.id === reglement.id)) {
+                        reglementsLocal.push(reglement);
+                        modif = true;
+                    }
+                }
+                if (change.type === "modified") {
+                    const index = reglementsLocal.findIndex(r => r.id === reglement.id);
+                    if (index !== -1) {
+                        reglementsLocal[index] = reglement;
+                        modif = true;
+                    }
+                }
+                if (change.type === "removed") {
+                    const index = reglementsLocal.findIndex(r => r.id === reglement.id);
+                    if (index !== -1) {
+                        reglementsLocal.splice(index, 1);
+                        modif = true;
+                    }
+                }
+            });
+
+            if (modif) {
+                trierReglementsParDate();
+                sauvegarderDansSession();
+                filtrerReglements();
+            }
+        }, error => {
+            console.error("Erreur synchronisation:", error);
+            isSyncing = false;
+        });
+}
+
+function forceRefresh() {
+    console.log("🔄 Forcer la resynchronisation");
+    if (unsubscribeFirestore) unsubscribeFirestore();
+    unsubscribeFirestore = setupRealtimeSync();
+}
+
+function chargerDepuisSession() {
+    const cacheData = sessionStorage.getItem(CACHE_CONFIG.KEY);
+    if (!cacheData) return false;
+
+    try {
+        const parsed = JSON.parse(cacheData);
+        const cacheExpired = Date.now() - parsed.timestamp > CACHE_CONFIG.MAX_AGE;
+        
+        if (parsed.version !== 2 || cacheExpired) {
+            sessionStorage.removeItem(CACHE_CONFIG.KEY);
+            return false;
+        }
+
+        reglementsLocal.length = 0;
+        reglementsLocal.push(...parsed.data);
+        trierReglementsParDate();
+        reglementsAffiches = [...reglementsLocal];
+        afficherReglementsPage(pageActuelle, reglementsAffiches);
+        return true;
+    } catch (e) {
+        console.error("Erreur cache:", e);
+        sessionStorage.removeItem(CACHE_CONFIG.KEY);
+        return false;
+    }
+}
+
+function sauvegarderDansSession() {
+    const cacheData = {
+        data: reglementsLocal,
+        timestamp: Date.now(),
+        version: 2
+    };
+    sessionStorage.setItem(CACHE_CONFIG.KEY, JSON.stringify(cacheData));
+    console.log("💾 Cache mis à jour");
+}
+
+// ---------------------------
+// FONCTIONS EXISTANTES (conservées à l'identique)
+// ---------------------------
+
 function trierReglementsParDate() {
     reglementsLocal.sort((a, b) => {
         const aDate = a.createdAt ? (a.createdAt.toMillis ? a.createdAt.toMillis() : new Date(a.createdAt).getTime()) : 0;
@@ -69,33 +199,6 @@ function trierReglementsParDate() {
     });
 }
 
-// Charger données depuis sessionStorage
-function chargerDepuisSession() {
-    const cacheData = sessionStorage.getItem(CACHE_KEY);
-    if (cacheData) {
-        try {
-            const reglements = JSON.parse(cacheData);
-            reglementsLocal.push(...reglements);
-            trierReglementsParDate();
-            reglementsAffiches = [...reglementsLocal];
-            afficherReglementsPage(pageActuelle, reglementsAffiches);
-            console.log("✅ Données chargées depuis sessionStorage");
-            return true;
-        } catch (e) {
-            console.warn("Erreur lecture sessionStorage", e);
-            sessionStorage.removeItem(CACHE_KEY);
-        }
-    }
-    return false;
-}
-
-// Sauvegarder dans sessionStorage
-function sauvegarderDansSession() {
-    sessionStorage.setItem(CACHE_KEY, JSON.stringify(reglementsLocal));
-    console.log("💾 Données mises en sessionStorage");
-}
-
-// Fonction pour afficher les reglements (tableau + pagination)
 function afficherReglementsPage(page, source = reglementsAffiches) {
     const debut = (page - 1) * reglementsParPage;
     const fin = debut + reglementsParPage;
@@ -135,7 +238,6 @@ function afficherReglementsPage(page, source = reglementsAffiches) {
     afficherStats();
 }
 
-// Mise à jour pagination dynamique
 function majPagination(source) {
     const totalPages = Math.ceil(source.length / reglementsParPage);
     paginationInfoText.textContent = `Affichage de ${(pageActuelle - 1) * reglementsParPage + 1}-${Math.min(pageActuelle * reglementsParPage, source.length)} sur ${source.length} enregistrements`;
@@ -156,23 +258,6 @@ function majPagination(source) {
     }
 }
 
-// Pagination boutons précédent/suivant
-prevPageBtn.addEventListener('click', () => {
-    if (pageActuelle > 1) {
-        pageActuelle--;
-        afficherReglementsPage(pageActuelle, reglementsAffiches);
-    }
-});
-
-nextPageBtn.addEventListener('click', () => {
-    const totalPages = Math.ceil(reglementsAffiches.length / reglementsParPage);
-    if (pageActuelle < totalPages) {
-        pageActuelle++;
-        afficherReglementsPage(pageActuelle, reglementsAffiches);
-    }
-});
-
-// Fonction filtrage (texte + date)
 function filtrerReglements() {
     const recherche = searchInput.value.trim().toLowerCase();
     const dateValeur = dateFilter.value;
@@ -196,11 +281,6 @@ function filtrerReglements() {
     afficherReglementsPage(pageActuelle, reglementsAffiches);
 }
 
-// Écouteurs sur filtres
-searchInput.addEventListener('input', filtrerReglements);
-dateFilter.addEventListener('change', filtrerReglements);
-
-// Affichage statistiques
 function afficherStats() {
     let totalAchat = 0;
     let totalArticles = 0;
@@ -214,7 +294,6 @@ function afficherStats() {
         moyenPaiementCounts[moyenPaiement] = (moyenPaiementCounts[moyenPaiement] || 0) + 1;
     });
 
-    // Trouver le moyen de paiement le plus utilisé
     let moyenPaiementPlusUtilise = 'Aucun';
     let maxCount = 0;
     for (const [moyen, count] of Object.entries(moyenPaiementCounts)) {
@@ -229,41 +308,26 @@ function afficherStats() {
     document.getElementById('marge-brute').textContent = moyenPaiementPlusUtilise;
 }
 
-// Gestion des modals
-const openModal = document.getElementById('openModal');
-const mouvementModal = document.getElementById("mouvementModal");
-const modalTitle = document.getElementById("modalTitle");
-const modalClose = document.getElementById("modalClose");
-const modalCancel = document.getElementById("modalCancel");
-const BtnOpenModal = document.getElementById('btnOpenModal');
+// ---------------------------
+// GESTION DES MODALS
+// ---------------------------
 
-// Ouvrir modal nouveau reglement
 function openMouvementModal() {
     modalTitle.textContent = "Nouveau Règlement";
     document.getElementById("mouvementForm").reset();
+    const today = new Date();
+    const formattedDate = today.toISOString().split('T')[0];
+    const dateInput = document.getElementById("date");
+    if (dateInput) {
+        dateInput.value = formattedDate;
+    }
     mouvementModal.classList.add('show');
-    
 }
 
-// Fermer modal
 function closeMouvementModal() {
     mouvementModal.classList.remove('show');
 }
 
-// Fermer modal si clic à l'extérieur
-window.addEventListener("click", (e) => {
-    if (e.target === mouvementModal) {
-        closeMouvementModal();
-    }
-});
-
-// Écouteurs sur boutons fermeture
-modalClose.addEventListener("click", closeMouvementModal);
-modalCancel.addEventListener("click", closeMouvementModal);
-openModal.addEventListener("click", openMouvementModal);
-BtnOpenModal.addEventListener("click", openMouvementModal);
-
-// Modal de visualisation
 function openViewModal() {
     document.getElementById('viewModal').classList.add('show');
 }
@@ -272,13 +336,6 @@ function closeViewModal() {
     document.getElementById('viewModal').classList.remove('show');
 }
 
-document.getElementById('viewModal').addEventListener('click', (e) => {
-    if (e.target === document.getElementById('viewModal')) {
-        closeViewModal();
-    }
-});
-
-// Voir les détails d'un reglement
 window.previewReglement = function (id) {
     const reglement = reglementsLocal.find(r => r.id === id);
     if (!reglement) return alert("Règlement introuvable");
@@ -294,22 +351,6 @@ window.previewReglement = function (id) {
     document.getElementById("view-numerofacture").textContent = reglement.NumeroFacture || 'Non spécifié';
 };
 
-// Fonction pour formater les montants
-function formatCurrency(amount) {
-    if (amount === undefined || amount === null) return '0 CFA';
-    const num = Number(amount);
-    const formatted = new Intl.NumberFormat('fr-FR', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0
-    }).format(num);
-    return `${formatted}`;
-}
-
-// Fermeture modal visualisation
-document.getElementById('viewModalClose').addEventListener('click', closeViewModal);
-document.getElementById('viewModalCloseBtn').addEventListener('click', closeViewModal);
-
-// Édition d'un reglement
 window.editerReglement = function (id) {
     const reglement = reglementsLocal.find(r => r.id === id);
     if (!reglement) return alert("Règlement introuvable");
@@ -327,7 +368,6 @@ window.editerReglement = function (id) {
     document.getElementById("numerofacture").value = reglement.NumeroFacture || '';
 };
 
-// Suppression d'un reglement
 window.supprimerReglement = async function (id) {
     if (!confirm("Voulez-vous vraiment supprimer ce règlement ?")) return;
     try {
@@ -345,128 +385,134 @@ window.supprimerReglement = async function (id) {
     }
 };
 
-// Sauvegarde/Modification d'un reglement
-modalSave.addEventListener('click', async (e) => {
-    e.preventDefault();
+// ---------------------------
+// ÉVÉNEMENTS
+// ---------------------------
 
-    // Validation des champs requis
-    const requiredFields = ['date', 'fournisseur', 'montantachat', 'moyenpaiement','article'];
-    let isValid = true;
-    const invalidFields = [];
-
-    requiredFields.forEach(fieldId => {
-        const field = document.getElementById(fieldId);
-        if (!field.value.trim()) {
-            isValid = false;
-            invalidFields.push(fieldId);
-            field.classList.add('is-invalid');
-        } else {
-            field.classList.remove('is-invalid');
+function setupEventListeners() {
+    // Pagination
+    prevPageBtn.addEventListener('click', () => {
+        if (pageActuelle > 1) {
+            pageActuelle--;
+            afficherReglementsPage(pageActuelle, reglementsAffiches);
         }
     });
 
-    if (!isValid) {
-        showNotification(`Champs requis manquants: ${invalidFields.join(', ')}`, 'error');
-        return;
-    };
-    console.log(reglementEnCoursId)
-    const reglementData = {
-        Date: document.getElementById("date").value,
-        Fournisseur: document.getElementById("fournisseur").value,
-        MontantAchat: parseFloat(document.getElementById("montantachat").value) || 0,
-        Article : document.getElementById("article").value,
-        MoyenPaiement: document.getElementById("moyenpaiement").value,
-        Modalite: document.getElementById("modalite").value || '',
-        NumeroFacture: document.getElementById("numerofacture").value || ''
-    };
-
-    try {
-        if (reglementEnCoursId) {
-            // Modification
-            await db.collection("reglementsFournisseurs").doc(reglementEnCoursId).update(reglementData);
-            const index = reglementsLocal.findIndex(r => r.id === reglementEnCoursId);
-            if (index !== -1) {
-                reglementsLocal[index] = { id: reglementEnCoursId, ...reglementData };
-            }
-            showNotification("Règlement modifié avec succès", "success");
-        } else {
-            // Nouveau reglement
-            reglementData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-            const docRef = await db.collection("reglementsFournisseurs").add(reglementData);
-            reglementsLocal.unshift({ id: docRef.id, ...reglementData, createdAt: new Date().getTime() });
-            showNotification("Règlement enregistré avec succès", "success");
-            document.getElementById("mouvementForm").reset();
+    nextPageBtn.addEventListener('click', () => {
+        const totalPages = Math.ceil(reglementsAffiches.length / reglementsParPage);
+        if (pageActuelle < totalPages) {
+            pageActuelle++;
+            afficherReglementsPage(pageActuelle, reglementsAffiches);
         }
+    });
 
-        reglementsAffiches = [...reglementsLocal];
-        sauvegarderDansSession();
-        afficherReglementsPage(pageActuelle, reglementsAffiches);
-        closeMouvementModal();
-        reglementEnCoursId = null;
+    // Filtres
+    searchInput.addEventListener('input', filtrerReglements);
+    dateFilter.addEventListener('change', filtrerReglements);
 
-    } catch (error) {
-        console.error("Erreur lors de la sauvegarde :", error);
-        showNotification("Erreur lors de la sauvegarde", "error");
-    }
-});
+    // Modals
+    modalClose.addEventListener("click", closeMouvementModal);
+    modalCancel.addEventListener("click", closeMouvementModal);
+    openModal.addEventListener("click", openMouvementModal);
+    BtnOpenModal.addEventListener("click", openMouvementModal);
+    document.getElementById('viewModalClose').addEventListener('click', closeViewModal);
+    document.getElementById('viewModalCloseBtn').addEventListener('click', closeViewModal);
 
-// Bouton Terminer (même fonction que Sauvegarder mais ferme le modal)
-modalFinish.addEventListener('click', function(e) {
-    modalSave.click(); // Déclenche l'événement click du bouton Sauvegarder
-    closeMouvementModal();
-});
+    // Clic externe modal
+    window.addEventListener("click", (e) => {
+        if (e.target === mouvementModal) closeMouvementModal();
+        if (e.target === document.getElementById('viewModal')) closeViewModal();
+    });
 
-// Synchronisation Firestore temps réel + gestion cache
-if (!chargerDepuisSession()) {
-    console.log("🔄 Chargement depuis Firestore...");
-    db.collection("reglementsFournisseurs")
-        .orderBy("createdAt", "desc")
-        .limit(500)
-        .onSnapshot(snapshot => {
-            let modif = false;
-            snapshot.docChanges().forEach(change => {
-                const reglement = { id: change.doc.id, ...change.doc.data() };
+    // Déconnexion
+    document.getElementById('logoutButton').addEventListener('click', logout);
 
-                if (change.type === "added") {
-                    if (!reglementsLocal.some(r => r.id === reglement.id)) {
-                        reglementsLocal.push(reglement);
-                        modif = true;
-                    }
-                }
-                if (change.type === "modified") {
-                    const index = reglementsLocal.findIndex(r => r.id === reglement.id);
-                    if (index !== -1) {
-                        reglementsLocal[index] = reglement;
-                        modif = true;
-                    }
-                }
-                if (change.type === "removed") {
-                    const index = reglementsLocal.findIndex(r => r.id === reglement.id);
-                    if (index !== -1) {
-                        reglementsLocal.splice(index, 1);
-                        modif = true;
-                    }
-                }
-            });
+    // Sauvegarde
+    modalSave.addEventListener('click', async (e) => {
+        e.preventDefault();
 
-            if (modif) {
-                trierReglementsParDate();
-                sauvegarderDansSession();
-                filtrerReglements();
+        // Validation des champs requis
+        const requiredFields = ['date', 'fournisseur', 'montantachat', 'moyenpaiement','article'];
+        let isValid = true;
+        const invalidFields = [];
+
+        requiredFields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (!field.value.trim()) {
+                isValid = false;
+                invalidFields.push(fieldId);
+                field.classList.add('is-invalid');
+            } else {
+                field.classList.remove('is-invalid');
             }
         });
+
+        if (!isValid) {
+            showNotification(`Champs requis manquants: ${invalidFields.join(', ')}`, 'error');
+            return;
+        };
+
+        const reglementData = {
+            Date: document.getElementById("date").value,
+            Fournisseur: document.getElementById("fournisseur").value,
+            MontantAchat: parseFloat(document.getElementById("montantachat").value) || 0,
+            Article: document.getElementById("article").value,
+            MoyenPaiement: document.getElementById("moyenpaiement").value,
+            Modalite: document.getElementById("modalite").value || '',
+            NumeroFacture: document.getElementById("numerofacture").value || '',
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        try {
+            if (reglementEnCoursId) {
+                // Modification
+                await db.collection("reglementsFournisseurs").doc(reglementEnCoursId).update(reglementData);
+                const index = reglementsLocal.findIndex(r => r.id === reglementEnCoursId);
+                if (index !== -1) {
+                    reglementsLocal[index] = { id: reglementEnCoursId, ...reglementData };
+                }
+                showNotification("Règlement modifié avec succès", "success");
+            } else {
+                // Nouveau reglement
+                reglementData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                const docRef = await db.collection("reglementsFournisseurs").add(reglementData);
+                reglementsLocal.unshift({ id: docRef.id, ...reglementData });
+                showNotification("Règlement enregistré avec succès", "success");
+                document.getElementById("mouvementForm").reset();
+            }
+
+            reglementsAffiches = [...reglementsLocal];
+            sauvegarderDansSession();
+            afficherReglementsPage(pageActuelle, reglementsAffiches);
+            closeMouvementModal();
+            reglementEnCoursId = null;
+
+        } catch (error) {
+            console.error("Erreur lors de la sauvegarde :", error);
+            showNotification("Erreur lors de la sauvegarde", "error");
+        }
+    });
+
+    // Bouton Terminer
+    modalFinish.addEventListener('click', function(e) {
+        modalSave.click();
+        closeMouvementModal();
+    });
 }
 
-// Gestion des notifications
-document.addEventListener('DOMContentLoaded', function() {
-    const archiveBtn = document.getElementById('archive');
-    if (archiveBtn) {
-        archiveBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            showNotification("Fonctionnalité bientôt disponible", "info");
-        });
-    }
-});
+// ---------------------------
+// UTILITAIRES
+// ---------------------------
+
+function formatCurrency(amount) {
+    if (amount === undefined || amount === null) return '0 CFA';
+    const num = Number(amount);
+    const formatted = new Intl.NumberFormat('fr-FR', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(num);
+    return `${formatted}`;
+}
 
 function showNotification(message, type = 'info') {
     const container = document.getElementById('notificationsContainer');
@@ -510,3 +556,22 @@ function showNotification(message, type = 'info') {
         }, 300);
     }, 5000);
 }
+
+// Gestion des notifications
+document.addEventListener('DOMContentLoaded', function() {
+    const archiveBtn = document.getElementById('archive');
+    if (archiveBtn) {
+        archiveBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            showNotification("Fonctionnalité bientôt disponible", "info");
+        });
+    }
+});
+
+// ---------------------------
+// NETTOYAGE
+// ---------------------------
+
+window.addEventListener('beforeunload', () => {
+    if (unsubscribeFirestore) unsubscribeFirestore();
+});
