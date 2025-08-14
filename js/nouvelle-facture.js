@@ -348,13 +348,101 @@ class FactureManager {
         }
     }
 
+
+    // Charger une facture depuis Firebase(facture dupliquer)
+    async chargerDupliquerFacture(factureId) {
+        if (!window.isFirebaseConfigured()) {
+            showStatusMessage('Firebase n\'est pas configuré', 'warning');
+            return;
+        }
+
+        try {
+            this.showLoading(true);
+
+            const doc = await window.firebaseDb.collection('factures').doc(factureId).get();
+
+            if (doc.exists) {
+                const data = doc.data();
+                this.populateForm(data);
+                this.currentFactureId = null;
+                showStatusMessage('Facture dupliquée et chargée avec succès!', 'success');
+            } else {
+                showStatusMessage('Facture non trouvée', 'error');
+            }
+
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('date-facture').value = today;
+
+            // Définir la date d'échéance (30 jours après la date de facture)
+            const echeanceDate = new Date();
+            echeanceDate.setDate(echeanceDate.getDate() + 30);
+            document.getElementById('date-echeance').value = echeanceDate.toISOString().split('T')[0];
+
+            // Générer un numéro de facture automatique
+            const numeroFacture = 'FAC-L2EP-AFRIC-' + Date.now().toString().slice(-6);
+            document.getElementById('numero-facture').value = numeroFacture;
+
+
+        } catch (error) {
+            console.error('Erreur lors du chargement:', error);
+            showStatusMessage('Erreur lors du chargement: ' + error.message, 'error');
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
+
+    // charger un devis comme une facture 
+
+    async chargerDevisCommeFacture(devisId) {
+        if (!window.isFirebaseConfigured()) {
+            showStatusMessage('Firebase n\'est pas configuré', 'warning');
+            return;
+        }
+
+        try {
+            this.showLoading(true);
+
+            const doc = await window.firebaseDb.collection('devis').doc(devisId).get();
+
+            if (doc.exists) {
+                const data = doc.data();
+                this.populateForm(data); // ✅ Remplit le formulaire de facture avec les données du devis
+                this.currentFactureId = null; // ❌ Ce n'est pas une facture existante, c'est un nouveau brouillon
+                showStatusMessage('Devis chargé avec succès pour conversion en facture', 'success');
+            } else {
+                showStatusMessage('Devis non trouvé', 'error');
+            }
+
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('date-facture').value = today;
+
+            // Définir la date d'échéance (30 jours après la date de facture)
+            const echeanceDate = new Date();
+            echeanceDate.setDate(echeanceDate.getDate() + 30);
+            document.getElementById('date-echeance').value = echeanceDate.toISOString().split('T')[0];
+
+            // Générer un numéro de facture automatique
+            const numeroFacture = 'FAC-L2EP-AFRIC-' + Date.now().toString().slice(-6);
+            document.getElementById('numero-facture').value = numeroFacture;
+
+        } catch (error) {
+            console.error('Erreur lors du chargement du devis :', error);
+            showStatusMessage('Erreur : ' + error.message, 'error');
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
+
+
     // Remplir le formulaire avec les données
     populateForm(data) {
         // Informations générales
         document.getElementById('numero-facture').value = data.numeroFacture || '';
         document.getElementById('date-facture').value = data.dateFacture || '';
         document.getElementById('date-echeance').value = data.dateEcheance || '';
-        document.getElementById('statut-facture').value = data.statut || 'brouillon';
+        document.getElementById('statut-facture').value = data.statut || '';
 
         // Informations facture
         document.getElementById('regime').value = data.regime || '';
@@ -375,7 +463,7 @@ class FactureManager {
         // Totaux
         document.getElementById('remise').value = data.remise || 0;
         document.getElementById('main-oeuvre').value = data.mainOeuvre || 0;
-        document.getElementById('tva').value = data.tva || 18;
+        document.getElementById('tva').value = data.tva || 0;
 
         // Vider le tableau actuel
         const tbody = document.querySelector('#items-table tbody');
@@ -597,16 +685,27 @@ let factureManager;
 
 document.addEventListener('DOMContentLoaded', function () {
     factureManager = new FactureManager();
-    window.factureManager = factureManager; // Rendre accessible globalement
+    window.factureManager = factureManager;
 
-    // Vérifier si un ID de facture est passé dans l'URL
     const urlParams = new URLSearchParams(window.location.search);
-    const factureId = urlParams.get('id');
+    const id = urlParams.get('id');
+    const type = urlParams.get('type'); // 👈 nouveau paramètre
 
-    if (factureId) {
-        factureManager.chargerFacture(factureId);
+    if (id && type === 'facture') {
+        factureManager.chargerFacture(id);
     }
+
+    if (id && type === 'devis') {
+        factureManager.chargerDevisCommeFacture(id);
+    }
+
+    if (id && type === 'facturedupliquer') {
+        factureManager.chargerDupliquerFacture(id);
+    }
+
 });
+
+
 
 // Export pour utilisation dans d'autres fichiers
 window.FactureManager = FactureManager;

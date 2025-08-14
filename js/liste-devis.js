@@ -178,7 +178,7 @@ class DevisManager {
             snapshot.forEach((doc) => {
                 const data = doc.data();
                 console.log("Devis trouvé:", doc.id, data);
-                
+
                 this.devisData.push({
                     id: doc.id,
                     ...data,
@@ -361,6 +361,12 @@ class DevisManager {
                 <button class="action-btn btn-edit" onclick="devisManager.editDevis('${devis.id}')" title="Modifier">
                     <i class="bi bi-pencil"></i>
                 </button>
+                <button class="action-btn btn-facture" onclick="devisManager.convertirFacture('${devis.id}')" title="Convertir en facture">
+                    <i class="bi bi-receipt"></i>
+                </button>
+                <button class="action-btn btn-facture" onclick="devisManager.dupliquerDevis('${devis.id}')" title="Dupliquer le devis">
+                    <i class="bi bi-files"></i>
+                </button>                                 
                 <button class="action-btn btn-delete" onclick="devisManager.confirmDeleteDevis('${devis.id}', '${devis.numeroDevis}', '${devis.clientName}')" title="Supprimer">
                     <i class="bi bi-trash"></i>
                 </button>
@@ -384,13 +390,19 @@ class DevisManager {
             <td><span class="devis-status ${statusClass}">${statusText}</span></td>
             <td>
                 <div class="table-actions">
-                    <button class="table-action-btn btn-preview" onclick="devisManager.previewDevis('${devis.id}')" title="Aperçu">
+                    <button class="table-action-btn btn-previewdevis" onclick="devisManager.previewDevis('${devis.id}')" title="Aperçu">
                         <i class="bi bi-eye"></i>
                     </button>
-                    <button class="table-action-btn btn-edit" onclick="devisManager.editDevis('${devis.id}')" title="Modifier">
+                    <button class="table-action-btn btn-editdevis" onclick="devisManager.editDevis('${devis.id}')" title="Modifier">
                         <i class="bi bi-pencil"></i>
                     </button>
-                    <button class="table-action-btn btn-delete" onclick="devisManager.confirmDeleteDevis('${devis.id}', '${devis.numeroDevis}', '${devis.clientName}')" title="Supprimer">
+                    <button class="table-action-btn btn-facturedevis" onclick="devisManager.convertirFacture('${devis.id}')" title="Convertir en facture">
+                        <i class="bi bi-receipt"></i>
+                    </button>
+                    <button class="table-action-btn btn-dupliquerdevis" onclick="devisManager.dupliquerDevis('${devis.id}')" title="Dupliquer le devis">
+                        <i class="bi bi-files"></i>
+                    </button>                                        
+                    <button class="table-action-btn btn-deletedevis" onclick="devisManager.confirmDeleteDevis('${devis.id}', '${devis.numeroDevis}', '${devis.clientName}')" title="Supprimer">
                         <i class="bi bi-trash"></i>
                     </button>
                 </div>
@@ -536,8 +548,17 @@ class DevisManager {
     }
 
     editDevis(devisId) {
-        window.location.href = `nouveau-devis.html?id=${devisId}`;
+        window.location.href = `nouveau-devis.html?type=devis&id=${devisId}`;
     }
+
+    convertirFacture(devisId) {
+        window.location.href = `nouvelle-facture.html?type=devis&id=${devisId}`;
+    }
+
+    dupliquerDevis(devisId) {
+         window.location.href = `nouveau-devis.html?type=devisdupliquer&id=${devisId}`;
+    }
+
 
     confirmDeleteDevis(devisId, numeroDevis, clientName) {
         document.getElementById('delete-devis-numero').textContent = numeroDevis;

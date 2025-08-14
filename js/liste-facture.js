@@ -182,7 +182,7 @@ class FactureManager {
             snapshot.forEach((doc) => {
                 const data = doc.data();
                 console.log("Facture trouvée:", doc.id, data);
-                
+
                 this.factureData.push({
                     id: doc.id,
                     ...data,
@@ -209,19 +209,19 @@ class FactureManager {
         const payees = this.factureData.filter(f => f.statut === 'payee');
         const impayees = this.factureData.filter(f => f.statut === 'impayee');
         const echues = this.factureData.filter(f => this.isFactureEchue(f));
-        
+
         // Calcul du chiffre d'affaires total
         const chiffreAffairesTotal = this.factureData
             .reduce((sum, f) => sum + (parseFloat(f.montantTTC) || 0), 0);
-        
+
         // Calcul du montant payé
         const montantPayeTotal = payees
             .reduce((sum, f) => sum + (parseFloat(f.montantTTC) || 0), 0);
-        
+
         // Calcul du montant impayé
         const montantImpayeTotal = impayees
             .reduce((sum, f) => sum + (parseFloat(f.montantTTC) || 0), 0);
-        
+
         // Calcul du montant échu
         const montantEchuTotal = echues
             .reduce((sum, f) => sum + (parseFloat(f.montantTTC) || 0), 0);
@@ -363,11 +363,11 @@ class FactureManager {
 
         const statusText = this.getStatusText(facture.statut);
         const statusClass = `status-${facture.statut || 'brouillon'}`;
-        
+
         // Déterminer la classe d'échéance
         let echeanceClass = '';
         let echeanceText = this.formatDate(facture.dateEcheance);
-        
+
         if (this.isFactureEchue(facture)) {
             echeanceClass = 'overdue';
             echeanceText += ' (Échue)';
@@ -416,6 +416,9 @@ class FactureManager {
                 <button class="action-btn btn-edit" onclick="factureManager.editFacture('${facture.id}')" title="Modifier">
                     <i class="bi bi-pencil"></i>
                 </button>
+                <button class="action-btn btn-dupliquer" onclick="factureManager.dupliquerFacture('${facture.id}')" title="Dupliquer">
+                    <i class="bi bi-files"></i>
+                </button>                
                 <button class="action-btn btn-delete" onclick="factureManager.confirmDeleteFacture('${facture.id}', '${facture.numeroFacture}', '${facture.clientName}')" title="Supprimer">
                     <i class="bi bi-trash"></i>
                 </button>
@@ -430,11 +433,11 @@ class FactureManager {
 
         const statusText = this.getStatusText(facture.statut);
         const statusClass = `status-${facture.statut || 'brouillon'}`;
-        
+
         // Déterminer la classe d'échéance
         let echeanceClass = '';
         let echeanceText = this.formatDate(facture.dateEcheance);
-        
+
         if (this.isFactureEchue(facture)) {
             echeanceClass = 'overdue';
             echeanceText += ' (Échue)';
@@ -452,16 +455,19 @@ class FactureManager {
             <td><span class="facture-status ${statusClass}">${statusText}</span></td>
             <td>
                 <div class="table-actions">
-                    <button class="table-action-btn btn-preview" onclick="factureManager.previewFacture('${facture.id}')" title="Aperçu">
+                    <button class="table-action-btn btn-previewfacture" onclick="factureManager.previewFacture('${facture.id}')" title="Aperçu">
                         <i class="bi bi-eye"></i>
                     </button>
-                    <button class="table-action-btn btn-status" onclick="factureManager.changeStatus('${facture.id}', '${facture.numeroFacture}', '${facture.clientName}')" title="Statut">
+                    <button class="table-action-btn btn-statusfacture" onclick="factureManager.changeStatus('${facture.id}', '${facture.numeroFacture}', '${facture.clientName}')" title="Statut">
                         <i class="bi bi-arrow-repeat"></i>
                     </button>
-                    <button class="table-action-btn btn-edit" onclick="factureManager.editFacture('${facture.id}')" title="Modifier">
+                    <button class="table-action-btn btn-editfacture" onclick="factureManager.editFacture('${facture.id}')" title="Modifier">
                         <i class="bi bi-pencil"></i>
                     </button>
-                    <button class="table-action-btn btn-delete" onclick="factureManager.confirmDeleteFacture('${facture.id}', '${facture.numeroFacture}', '${facture.clientName}')" title="Supprimer">
+                    <button class="table-action-btn btn-dupliquerfacture" onclick="factureManager.dupliquerFacture('${facture.id}')" title="dupliquer">
+                        <i class="bi bi-files"></i>
+                    </button>                    
+                    <button class="table-action-btn btn-deletefacture" onclick="factureManager.confirmDeleteFacture('${facture.id}', '${facture.numeroFacture}', '${facture.clientName}')" title="Supprimer">
                         <i class="bi bi-trash"></i>
                     </button>
                 </div>
@@ -613,7 +619,7 @@ class FactureManager {
 
         document.getElementById('status-facture-numero').textContent = numeroFacture;
         document.getElementById('status-facture-client').textContent = clientName;
-        
+
         const newStatusSelect = document.getElementById('new-status');
         newStatusSelect.value = facture.statut;
 
@@ -627,7 +633,7 @@ class FactureManager {
     async updateFactureStatus(factureId) {
         try {
             const newStatus = document.getElementById('new-status').value;
-            
+
             await firebase.firestore().collection('factures').doc(factureId).update({
                 statut: newStatus,
                 dateModification: firebase.firestore.FieldValue.serverTimestamp()
@@ -653,7 +659,13 @@ class FactureManager {
     }
 
     editFacture(factureId) {
-        window.location.href = `nouvelle-facture.html?id=${factureId}`;
+
+        window.location.href = `nouvelle-facture.html?type=facture&id=${factureId}`;
+    }
+
+    dupliquerFacture(factureId) {
+
+        window.location.href = `nouvelle-facture.html?type=facturedupliquer&id=${factureId}`;
     }
 
     confirmDeleteFacture(factureId, numeroFacture, clientName) {

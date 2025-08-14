@@ -335,7 +335,7 @@ class DashboardManager {
         if (this.pendingQuotesAmount) this.pendingQuotesAmount.textContent = this.formatCurrency(pendingQuotesAmount);
 
         // Objectif du mois (simulation)
-        const monthlyGoal = 1000000; // 1M FCFA
+        const monthlyGoal = 10000000; // 1M FCFA
         const currentRevenue = this.factureData
             .filter(f => {
                 if (f.statut !== 'payee') return false;

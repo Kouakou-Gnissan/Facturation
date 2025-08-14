@@ -77,7 +77,7 @@
                 <tbody id="devis-lignes-articles">
                     <!-- Lignes injectées dynamiquement -->
                     <tr>
-                        <td class="article ligne1">FOURNITURE D'APPAREILLAGES ELECTRIQUES</td>
+                        <td class="article"></td>
                         <td class="quantite"></td>
                         <td class="prix"></td>
                         <td class="total"></td>
@@ -238,7 +238,7 @@
 
         <!-- footer du devis -->
         <section class="devis-footer">
-            <p><strong>ARRETER LE PRESENT DEVIS A LA SOMME DE :</strong><span id="montant-lettre"></span></p>
+            <p><strong>ARRETE LE PRESENT DEVIS A LA SOMME DE : </strong><span id="montant-lettre"></span></p>
             <div class="footer-info">
                 <div class="footer-adresse">
                     <p>E-mail: info@l2epci.ci/ info@l2epci.com</p>
@@ -276,7 +276,12 @@
 
             // Infos générales
             document.getElementById("numero-devis").textContent = data.numeroDevis || "";
-            document.getElementById("date-devis").textContent = data.dateDevis || "";
+            if (data.dateDevis) {
+                const [annee, mois, jour] = data.dateDevis.split("-");
+                document.getElementById("date-devis").textContent = `${jour}-${mois}-${annee}`;
+            } else {
+                document.getElementById("date-devis").textContent = "";
+            }
 
             // Infos devis
             document.getElementById("regime-imposition").textContent = data.regime || "";
@@ -296,8 +301,8 @@
 
             // Insertion des articles
             const lignes = document.querySelectorAll("#devis-lignes-articles tr");
-            for (let i = 1; i < lignes.length && i - 1 < data.articles.length; i++) {
-                const article = data.articles[i - 1];
+            for (let i = 0; i < lignes.length && i < data.articles.length; i++) {
+                const article = data.articles[i];
                 lignes[i].querySelector(".article").textContent = article.description || "";
                 lignes[i].querySelector(".quantite").textContent = article.quantity || "";
                 lignes[i].querySelector(".prix").textContent = formatNumber(article.price || 0);
@@ -318,7 +323,7 @@
             totalRow.querySelector(".remise").textContent = formatNumber(montantRemise);
             const enteteRemise = document.querySelector(".remise-entete");
             if (enteteRemise) {
-                enteteRemise.textContent = `Remise ${remisePourcent}%`;
+                enteteRemise.textContent = `REMISE ${remisePourcent}%`;
             }
 
             // Après remise
@@ -334,10 +339,13 @@
             // Montant TTC
             totalRow.querySelector(".montant-ttc").textContent = formatNumber(data.montantTTC || 0);
 
-            // Montant en lettres
             if (data.montantLettre && data.montantLettre.trim() !== "") {
-                document.getElementById("montant-lettre").textContent = data.montantLettre;
+                // On met aussi une majuscule au cas où la donnée provient de data.montantLettre
+                const montantLettreFormate = data.montantLettre.trim();
+                document.getElementById("montant-lettre").textContent =
+                    montantLettreFormate.charAt(0).toUpperCase() + montantLettreFormate.slice(1);
             } else if (data.montantTTC) {
+                // La fonction numberToWordsFr renvoie déjà avec majuscule
                 const montantLettre = numberToWordsFr(Math.round(data.montantTTC));
                 document.getElementById("montant-lettre").textContent = montantLettre;
             }
@@ -376,7 +384,8 @@
                 return convert(Math.floor(n / 1000000)) + ' millions' + (n % 1000000 > 0 ? ' ' + convert(n % 1000000) : '');
             }
 
-            return convert(n) + ' francs CFA./.';
+            let texte = convert(n) + ' francs CFA./.';
+            return texte.charAt(0).toUpperCase() + texte.slice(1);
         }
     </script>
 

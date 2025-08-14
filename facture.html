@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Facture</title>
-    <link rel="stylesheet" href="style/facture.css">
+    <link rel="stylesheet" href="style/facture.css?v=2">
     <style>
         @media print {
             * {
@@ -120,7 +120,7 @@
                 <tbody id="facture-lignes-articles">
                     <!-- Lignes injectées dynamiquement -->
                     <tr>
-                        <td class="article ligne1">FOURNITURE D'APPAREILLAGES ELECTRIQUES</td>
+                        <td class="article"></td>
                         <td class="quantite"></td>
                         <td class="prix"></td>
                         <td class="total"></td>
@@ -279,7 +279,7 @@
 
         <!-- footer de la facture -->
         <section class="facture-footer">
-            <p><strong>ARRETER LA PRESENTE FACTURE A LA SOMME DE :</strong><span id="montant-lettre"></span></p>
+            <p><strong>ARRETEE LA PRESENTE FACTURE A LA SOMME DE : </strong><span id="montant-lettre"></span></p>
             <div class="footer-info">
                 <div class="footer-signature">
                     <p><strong>LA DIRECTION GENERALE</strong></p>
@@ -364,7 +364,17 @@
             if (data.dateFacture) {
                 const date = new Date(data.dateFacture);
                 const options = { day: 'numeric', month: 'long', year: 'numeric' };
-                const dateFr = date.toLocaleDateString('fr-FR', options);
+                let dateFr = date.toLocaleDateString('fr-FR', options);
+
+                // On découpe en parties : [jour, mois, année]
+                let [jour, mois, année] = dateFr.split(' ');
+
+                // Mettre la première lettre du mois en majuscule
+                mois = mois.charAt(0).toUpperCase() + mois.slice(1);
+
+                // Reconstruire la date
+                dateFr = `${jour} ${mois} ${année}`;
+
                 document.getElementById("date-facture").textContent = dateFr;
             }
 
@@ -376,8 +386,8 @@
 
             // Insertion des articles (à partir de la 2e ligne du tableau)
             const lignes = document.querySelectorAll("#facture-lignes-articles tr");
-            for (let i = 1; i < lignes.length && i - 1 < (data.articles || []).length; i++) {
-                const articleData = data.articles[i - 1];
+            for (let i = 0; i < lignes.length && i < (data.articles || []).length; i++) {
+                const articleData = data.articles[i];
                 if (articleData) {
                     lignes[i].querySelector(".article").textContent = articleData.description || "";
                     lignes[i].querySelector(".quantite").textContent = articleData.quantity || "";
@@ -404,7 +414,7 @@
                 // Mettre à jour le texte de l'en-tête avec le pourcentage (ex : Remise 5%)
                 const enteteRemise = document.querySelector(".remise-entete");
                 if (enteteRemise) {
-                    enteteRemise.textContent = `Remise ${remisePourcentage}%`;
+                    enteteRemise.textContent = `REMISE ${remisePourcentage}%`;
                 }
 
                 totalRow.querySelector(".apres-remise").textContent = data.apresRemise ? formatNumber(data.apresRemise) : "";
@@ -492,7 +502,8 @@
                 return convert(Math.floor(n / 1000000)) + ' millions' + (n % 1000000 > 0 ? ' ' + convert(n % 1000000) : '');
             }
 
-            return convert(n) + ' francs CFA./.';
+            let texte = convert(n) + ' francs CFA./.';
+            return texte.charAt(0).toUpperCase() + texte.slice(1);
         }
 
     </script>

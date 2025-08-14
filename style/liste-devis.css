@@ -856,6 +856,62 @@ body {
   background: var(--gray-light);
 }
 
+.btn-dupliquerdevis {
+  background: var(--card-purple);
+  color: white;
+  
+}
+
+.btn-dupliquerdevis:hover {
+  background: white;
+  color: var(--warning);
+}
+
+.btn-deletedevis {
+  background-color: var(--danger);
+  color: white;
+  
+}
+
+.btn-deletedevis:hover {
+  background-color: white;
+  color: var(--danger);
+}
+
+.btn-facturedevis {
+  background: var(--card-blue);
+  color: white;
+  
+}
+
+.btn-facturedevis:hover {
+  background: white;
+  color: var(--card-blue);
+}
+
+.btn-previewdevis {
+  background: var(--card-green);
+  color: white;
+  
+}
+
+.btn-previewdevis:hover {
+  background: white;
+  color: var(--card-green);
+}
+
+.btn-editdevis {
+  background: var(--primary);
+  color: white;
+}
+
+.btn-editdevis:hover {
+  background: white;
+  color: var(--primary);
+}
+
+
+
 /* Message aucun devis */
 .no-devis {
   padding: 4rem 2rem;

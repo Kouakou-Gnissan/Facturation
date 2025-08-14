@@ -348,11 +348,62 @@ class DevisManager {
         }
     }
 
+    // Charger un devis depuis Firebase(devis dupliquer)
+    async chargerDevisDupliquer(devisId) {
+        
+        if (!window.isFirebaseConfigured()) {
+            showStatusMessage('Firebase n\'est pas configuré', 'warning');
+            return;
+        }
+
+        try {
+            this.showLoading(true);
+
+            const doc = await window.firebaseDb.collection('devis').doc(devisId).get();
+
+            if (doc.exists) {
+                const data = doc.data();
+                this.populateForm(data);
+                this.currentDevisId = null;
+                showStatusMessage('Devis dupliqué et chargé avec succès!', 'success');
+            } else {
+                showStatusMessage('Devis non trouvé', 'error');
+            }
+
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('date-devis').value = today;
+
+            // Générer un numéro de devis automatique
+            const aujourdHui = new Date();
+            const annee = aujourdHui.getFullYear();
+            const mois = String(aujourdHui.getMonth() + 1).padStart(2, '0');
+            const jour = String(aujourdHui.getDate()).padStart(2, '0');
+
+            const dateFormat = `${annee}${mois}${jour}`;
+            const codeEntreprise = 'L2EP-AFRIC';
+            const randomNum = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+
+            const numeroDevis = `${dateFormat}/${codeEntreprise}/${randomNum}`;
+            document.getElementById('numero-devis').value = numeroDevis;
+
+
+        } catch (error) {
+            console.error('Erreur lors du chargement:', error);
+            showStatusMessage('Erreur lors du chargement: ' + error.message, 'error');
+        } finally {
+            this.showLoading(false);
+        }
+
+        // Définir la date du jour par défaut
+
+    }
+
     // Remplir le formulaire avec les données
     populateForm(data) {
         // Informations générales
         document.getElementById('numero-devis').value = data.numeroDevis || '';
         document.getElementById('date-devis').value = data.dateDevis || '';
+        document.getElementById('statut-devis').value = data.statut || '';
 
         // Informations devis
         document.getElementById('regime').value = data.regime || '';
@@ -373,7 +424,7 @@ class DevisManager {
         // Totaux
         document.getElementById('remise').value = data.remise || 0;
         document.getElementById('main-oeuvre').value = data.mainOeuvre || 0;
-        document.getElementById('tva').value = data.tva || 18;
+        document.getElementById('tva').value = data.tva || 0;
 
         // Vider le tableau actuel
         const tbody = document.querySelector('#items-table tbody');
@@ -491,10 +542,6 @@ class DevisManager {
 
 
 
-
-
-
-
     // Créer un nouveau devis
     nouveauDevis() {
         this.currentDevisId = null;
@@ -599,12 +646,30 @@ document.addEventListener('DOMContentLoaded', function () {
     window.devisManager = devisManager; // Rendre accessible globalement
 
     // Vérifier si un ID de devis est passé dans l'URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const devisId = urlParams.get('id');
+    //const urlParams = new URLSearchParams(window.location.search);
+    //const devisId = urlParams.get('id');
 
-    if (devisId) {
-        devisManager.chargerDevis(devisId);
+    //if (devisId) {
+    //    devisManager.chargerDevis(devisId);
+
+    //}
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const id = urlParams.get('id');
+    const type = urlParams.get('type'); // 👈 nouveau paramètre
+
+    if (id && type === 'devis') {
+        devisManager.chargerDevis(id);
+        
     }
+
+    if (id && type === 'devisdupliquer') {
+        devisManager.chargerDevisDupliquer(id);
+        
+    }
+
+
+
 });
 
 // Export pour utilisation dans d'autres fichiers
